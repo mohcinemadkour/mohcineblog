@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 AUTHOR = u'Mohcine Madkour'
 SITENAME = u'Mohcine Madkour'
 TAGLINE = u'Big Data Architectures and more'
-SITEURL = 'https://mohcinemadkour.github.io'
+#SITEURL = 'https://mohcinemadkour.github.io'
 
 PATH = 'content'
 
@@ -91,6 +91,11 @@ MARKUP = ('md', 'ipynb')
 #PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img', 'liquid_tags.include_code', 'liquid_tags.notebook', 'pelican_gist']
 PLUGINS = ['render_math','gravatar', 'liquid_tags.youtube', 'liquid_tags.img',  'pelican_gist', 'ipynb.liquid', 'pelican_javascript']
 
+
 # Uncomment following line if you want document-relative URLs when developing
 RELATIVE_URLS = True
 MD_EXTENSIONS = ['codehilite(css_class=highlight)','extra']
+
+# OUTPUT_PATH = '../site'
+# Uncomment following line if you want document-relative URLs when developing
+#RELATIVE_URLS = True

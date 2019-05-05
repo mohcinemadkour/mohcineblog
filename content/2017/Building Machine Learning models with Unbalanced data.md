@@ -6,7 +6,6 @@ Slug: Learning from unbalanced data
 Author: Mohcine Madkour
 Email: mohcine.madkour@gmail.com
 
-$e=mc^2$
 In this blog post, I'll discuss a number of considerations and techniques for dealing with imbalanced data when training a machine learning model. The blog post will rely heavily on a sklearn contributor package called [imbalanced-learn](https://imbalanced-learn.org/en/stable/index.html) to implement the discussed techniques.
 Training a machine learning model on an imbalanced dataset can introduce unique challenges to the learning problem. Imbalanced data typically refers to a classification problem where the number of observations per class is not equally distributed; often you'll have a large amount of data/observations for one class (referred to as the majority class), and much fewer observations for one or more other classes (referred to as the minority classes). For example, suppose you're building a classifier to classify a credit card transaction a fraudulent or authentic - you'll likely have 10,000 authentic transactions for every 1 fraudulent transaction, that's quite an imbalance!
 To understand the challenges that a class imbalance imposes, let's consider two common ways we'll train a model: tree-based logical rules developed according to some splitting criterion, and parameterized models updated by gradient descent.
@@ -40,8 +39,6 @@ The following graphic does a phenomenal job visualizing the difference between p
 We can further combine these two metrics into a single value by calcuating the f-score as defined below.
 
 $$Fβ=(1+β2)precision⋅recall/(β2⋅precision)+recall$$
-
-$$\sum_{i=0}^n i^2 = \frac{(n^2+n)(2n+1)}{6}$$
 
 The β parameter allows us to control the tradeoff of importance between precision and recall. β<1 focuses more on precision while β>1
 
