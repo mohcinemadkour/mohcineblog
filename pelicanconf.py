@@ -67,6 +67,10 @@ NOTEBOOK_DIR = 'notebooks'
 IPYNB_STOP_SUMMARY_TAGS = [('div', ('class', 'input')), ('div', ('class', 'output')), 
 						('div', ('content')), 'h1']
 
+
+#MATH_JAX = {'color':'blue','align':'left'}
+#MATH_JAX = {'tex_extensions': ['color.js','mhchem.js']}
+
 # Shift the installed location of a file
 #EXTRA_PATH_METADATA = {
 #    'extra/CNAME': {'path': 'CNAME'},
@@ -85,7 +89,7 @@ PLUGIN_PATHS = ['./plugins']
 #PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img', 'liquid_tags.notebook', 'pelican_gist']
 MARKUP = ('md', 'ipynb')
 #PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img', 'liquid_tags.include_code', 'liquid_tags.notebook', 'pelican_gist']
-PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img',  'pelican_gist', 'ipynb.liquid', 'pelican_javascript', 'render_math']
+PLUGINS = ['render_math','gravatar', 'liquid_tags.youtube', 'liquid_tags.img',  'pelican_gist', 'ipynb.liquid', 'pelican_javascript']
 
 # Uncomment following line if you want document-relative URLs when developing
 RELATIVE_URLS = True
