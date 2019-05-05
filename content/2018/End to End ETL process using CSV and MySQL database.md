@@ -1,17 +1,22 @@
 Title: End to End ETL process using CSV files and MySQL database
 Date: 2018-10-07 16:00
 Category: Database 
-Tags: MySQL, MySQL Cluster, Database, Load data, CSV
-Slug: Using only Python: How to transform a set of CSV files to a complete MySQL database from end to end
+Tags: MySQL, Database, Load data, CSV
+Slug: Using only Python ETL a set of CSV files to a native MySQL database from end to end2
 Author: Mohcine Madkour
 Email: mohcine.madkour@gmail.com
 
+This post explains an end to end process to move data from simple CSV files to a database server, in my case MySQL but you can do some tiny changes to have it work in any SQL language. I put the schema of the [database I generated from this code] (http://mohcinemadkour.github.io/DBSchema/) using schemaSPy. This is a 20 Gegabytes database I have cleaned and generated. I found this code also very useful wehn moving the database from development to production environments. I made this code in a modular format so the functions can be used if needed such as data_type function which detect the type of the column data and cast it to a python data type 
 
-Usually when I need to upload a CSV I will use Periscope Data's CSV functionality. It's fast, easy, allows me to join the data with all my databases, and automatically casts types and load the data. Sometimes, however, I like to interact directly with a MySQL cluster—usually for complex data transformations and modeling in Python. When interacting directly with a database, it can be a pain to write a create table statement and load your data. When the table is wide, you have two choices while writing your create table—spend the time to figure out the correct data types, or lazily import everything as text and deal with the type casting in SQL. The first is slow, and the second will get you in trouble down the road.
 
-I recently ran into a great example of this when I needed to upload 20 Gega of EHR data. They are available in a CSV format, but a daunting 100+ columns wide. I wanted to load the data into My SQL and rather than be generous in my data types, I wanted to use the proper columns. I decided to speed up the load process by writing a Python script, which turned into a fun exercise in data type detection and automated data loading to database.
+## Some notes
 
-## Checklist before start
+ Usually when I need to upload a CSV I will use Periscope
+ Data's CSV functionality. It's fast, easy, allows me to join the data with all my databases, and automatically casts types and load the data. Sometimes, however, I like to interact directly with a MySQL cluster—usually for complex data transformations and modeling in Python. When interacting directly with a database, it can be a pain to write a create table statement and load your data. When the table is wide, you have two choices while writing your create table—spend the time to figure out the correct data types, or lazily import everything as text and deal with the type casting in SQL. The first is slow, and the second will get you in trouble down the road.
+
+Here I show an example of this case when I upload 20 Gega of EHR data in a CSV format which are daunting 100+ columns wide. I wanted to load the data into MySQL server and rather than be generous in my data types, I wanted to use the proper columns. I decided to speed up the load process by writing a Python script, which turned into a fun exercise in data type detection and automated data loading to database.
+
+## Check-list before start
 
 First of all ... couple of things to check:
 
