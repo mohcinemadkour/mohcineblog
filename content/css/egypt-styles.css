@@ -112,3 +112,8 @@ div.timeline-event-label:after {
 	width: 15px;
 	content: "";
 }
+
+img[src*='#center'] { 
+    display: block;
+    margin: auto;
+}

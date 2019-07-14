@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 AUTHOR = u'Mohcine Madkour'
 SITENAME = u'Mohcine Madkour'
 TAGLINE = u'Big Data Architectures and more'
-#SITEURL = 'https://mohcinemadkour.github.io'
+SITEURL = 'https://mmadkour.xyz'
 
 PATH = 'content'
 
@@ -19,7 +19,7 @@ CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
 
-MENUITEMS = [('Archive', 'archives.html'), ('About', 'pages/about.html'),('CV-Resume','pdfs/mohcine_madkour_cv.pdf'),]
+MENUITEMS = [('About', 'pages/about.html'),('Biography','pages/biography.html')]
 
 STATIC_PATHS = ['images', 'pdfs']
 
@@ -32,10 +32,10 @@ SOCIAL = (('linkedin', 'https://www.linkedin.com/in/mohcine-madkour-83a642b2'),
           ('twitter', 'https://twitter.com/mohcinemadkour/'),)
 
 # Blogroll
-LINKS = (('Pelican', 'http://getpelican.com/'),
-         ('Python.org', 'http://python.org/'),
-         ('Jinja2', 'http://jinja.pocoo.org/'),
-         ('You can modify those links in your config file', '#'),)
+#LINKS = (('Pelican', 'http://getpelican.com/'),
+#         ('Python.org', 'http://python.org/'),
+#         ('Jinja2', 'http://jinja.pocoo.org/'),
+#         ('You can modify those links in your config file', '#'),)
 
 #Set Disqus sitename
 DISQUS_SITENAME = 'leafyleap-2'
@@ -89,12 +89,26 @@ PLUGIN_PATHS = ['./plugins']
 #PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img', 'liquid_tags.notebook', 'pelican_gist']
 MARKUP = ('md', 'ipynb')
 #PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img', 'liquid_tags.include_code', 'liquid_tags.notebook', 'pelican_gist']
-PLUGINS = ['render_math','gravatar', 'liquid_tags.youtube', 'liquid_tags.img',  'pelican_gist', 'ipynb.liquid', 'pelican_javascript']
+PLUGINS = ['gravatar', 'liquid_tags.youtube', 'liquid_tags.img',  'pelican_gist', 'ipynb.liquid', 'pelican_javascript', 'render_math']
 
 
 # Uncomment following line if you want document-relative URLs when developing
 RELATIVE_URLS = True
 MD_EXTENSIONS = ['codehilite(css_class=highlight)','extra']
+
+
+
+MARKDOWN = {
+    'extension_configs': {
+        'markdown.extensions.toc': {
+            'marker': '[TableOfContents]',
+            'title': 'Table of Contents',
+            'anchorlink': True,
+            'permalink': True,
+            'baselevel': 2,
+        }
+    }
+}
 
 # OUTPUT_PATH = '../site'
 # Uncomment following line if you want document-relative URLs when developing
