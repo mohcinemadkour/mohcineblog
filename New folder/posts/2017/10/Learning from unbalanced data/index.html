@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mohcine Madkour, Big Data Architectures and more">
+
+
+        <title>Building Machine Learning models with Imbalanced data // Mohcine Madkour // Big Data Architectures and more</title>
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.3.0/pure-min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../../../theme/css/pure.css">
+    <link rel="stylesheet" href="../../../../theme/css/pygments.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fitvids/1.0.1/jquery.fitvids.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".content").fitVids();
+        });
+    </script>
+</head>
+
+<body>
+<div class="pure-g-r" id="layout">
+    <div class="sidebar sidebar-article pure-u">
+        <header class="header-article">
+            <hgroup>
+                <a href="../../../../author/mohcine-madkour.html" title="See posts by Mohcine Madkour">
+                        <img class="avatar" alt="Mohcine Madkour" src="http://www.gravatar.com/avatar/ae08847efc1a85b710f326eb8ee2e907">
+                </a>
+                <h2 class="article-info">Mohcine Madkour</h2>
+                <small class="about-author"></small>
+                <h5>Published</h5>
+                <p>Mon 09 October 2017</p>
+                <a href="/">&larr;Home</a>
+            </hgroup>
+        </header>
+    </div>
+    <div class="pure-u">
+        <div class="content">
+            <section class="post">
+                <header class="post-header">
+                    <h1>Building Machine Learning models with Imbalanced data</h1>
+                        <p class="post-meta">
+                            // under                                 <a class="post-category" href="../../../../tag/unbalanced-data/">unbalanced data</a>
+                                <a class="post-category" href="../../../../tag/roc/">ROC</a>
+                                <a class="post-category" href="../../../../tag/auroc/">AUROC</a>
+                                <a class="post-category" href="../../../../tag/aucpr/">AUCPR</a>
+                                <a class="post-category" href="../../../../tag/f1-score/">F1 Score</a>
+                                <a class="post-category" href="../../../../tag/recall/">Recall</a>
+                                <a class="post-category" href="../../../../tag/precision/">Precision</a>
+                        </p>
+                </header>
+            </section>
+            <p>In this blog post, I'll discuss a number of considerations and techniques for dealing with imbalanced data when training a machine learning model. The blog post will rely heavily on a sklearn contributor package called <a href="https://imbalanced-learn.org/en/stable/index.html">imbalanced-learn</a> to implement the discussed techniques.
+Training a machine learning model on an imbalanced dataset can introduce unique challenges to the learning problem. Imbalanced data typically refers to a classification problem where the number of observations per class is not equally distributed; often you'll have a large amount of data/observations for one class (referred to as the majority class), and much fewer observations for one or more other classes (referred to as the minority classes). For example, suppose you're building a classifier to classify a credit card transaction a fraudulent or authentic - you'll likely have 10,000 authentic transactions for every 1 fraudulent transaction, that's quite an imbalance!
+To understand the challenges that a class imbalance imposes, let's consider two common ways we'll train a model: tree-based logical rules developed according to some splitting criterion, and parameterized models updated by gradient descent.
+When building a tree-based model (such as a decision tree), our objective is to find logical rules which are capable of taking the full dataset and separating out the observations into their different classes. In other words, we'd like each split in the tree to increase the purity of observations such that the data is filtered into homogeneous groups. If we have a majority class present, the top of the decision tree is likely to learn splits which separate out the majority class into pure groups at the expense of learning rules which separate the minority class.</p>
+<div style="text-align:center">
+<p><img alt="majority minority class" src="/images/ImbalancedData/Screen-Shot-2018-02-12-at-10.06.36-PM.png"></p>
+</div>
+<p>For a more concrete example, here's a decision tree trained on the wine quality dataset used as an example later on in this post. The field value represents the number of observations for each class in a given node.</p>
+<div style="text-align:center">
+<p><img alt="Tree" src="/images/ImbalancedData/download-1.png"></p>
+</div>
+<p>Similarly, if we're updating a parameterized model by gradient descent to minimize our loss function, we'll be spending most of our updates changing the parameter values in the direction which allow for correct classification of the majority class. In other words, many machine learning models are subject to a frequency bias in which they place more emphasis on learning from data observations which occur more commonly.</p>
+<p>It's worth noting that not all datasets are affected equally by class imbalance. Generally, for easy classification problems in which there's a clear separation in the data, class imbalance doesn't impede on the model's ability to learn effectively. However, datasets that are inherently more difficult to learn from see an amplification in the learning challenge when a class imbalance is introduced.</p>
+<h1>Metrics</h1>
+<p>When dealing with imbalanced data, standard classification metrics do not adequately represent your models performance. For example, suppose you are building a model which will look at a person's medical records and classify whether or not they are likely to have a rare disease. An accuracy of 99.5% might look great until you realize that it is correctly classifying the 99.5% of healthy people as "disease-free" and incorrectly classifying the 0.5% of people which do have the disease as healthy. I discussed this in my post on evaluating a machine learning model, but I'll provide a discussion here as well regarding useful metrics when dealing with imbalanced data.</p>
+<p><strong>Precision</strong> is defined as the fraction of relevant examples (true positives) among all of the examples which were predicted to belong in a certain class.</p>
+<div style="text-align:center">
+<p><img alt="Precision" src="/images/ImbalancedData/M1.png"></p>
+</div>
+<p><strong>Recall</strong> is defined as the fraction of examples which were predicted to belong to a class with respect to all of the examples that truly belong in the class.</p>
+<div style="text-align:center">
+<p><img alt="Recall" src="/images/ImbalancedData/M2.png"></p>
+</div>
+<p>The following graphic does a phenomenal job visualizing the difference between precision and recall.
+<div style="text-align:center" markdown="1">
+<img alt="the difference between precision and recall" src="/images/ImbalancedData/Precisionrecall.svg.png">
+</div>
+<a href="https://en.wikipedia.org/wiki/Precision_and_recall">Image credit</a></p>
+<p>We can further combine these two metrics into a single value by calcuating the f-score as defined below.</p>
+<div style="text-align:center">
+<p><img alt="Recall" src="/images/ImbalancedData/M3.png"></p>
+</div>
+<p>The β parameter allows us to control the tradeoff of importance between precision and recall. β&lt;1 focuses more on precision while β&gt;1</p>
+<p>focuses more on recall.</p>
+<p>Another common tool used to understand a model's performance is a Receiver Operating Characteristics (ROC) curve. An ROC curve visualizes an algorithm's ability to discriminate the positive class from the rest of the data. We'll do this by plotting the True Positive Rate against the False Positive Rate for varying prediction thresholds.</p>
+<div style="text-align:center">
+<p><img alt="TPR" src="/images/ImbalancedData/M4.png"></p>
+</div>
+<div style="text-align:center">
+<p><img alt="FPR" src="/images/ImbalancedData/M5.png"></p>
+</div>
+<p>For classifiers which only produce factor outcomes (ie. directly output a class), there exists a fixed TPR and FPR for a trained model. However, other classifiers, such as logistic regression, are capable of giving a probabilistic output (ie. the chance that a given observation belongs to the positive class). For these classifiers, we can specify the probability threshold by which above that amount we'll predict the observation belongs to the positive class.
+<div style="text-align:center" markdown="1">
+<img alt="ROC" src="/images/ImbalancedData/Screen-Shot-2018-02-15-at-12.41.38-PM.png">
+</div>
+[Image credit] (https://en.wikipedia.org/wiki/Receiver_operating_characteristic) and [Image credit] (https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html#sphx-glr-auto-examples-model-selection-plot-roc-py)</p>
+<p>If we set a very low value for this probability threshold, we can increase our True Positive Rate as we'll be more likely to capture all of the positive observations. However, this can also introduce a number of false positive classifications, increasing our False Positive Rate. Intuitively, there exists a tradeoff between maximizing our True Positive Rate and minimizing our False Positive Rate. The ideal model would correctly identify all positive observations as belonging to the positive class (TPR=1) and would not incorrectly classify negative observations as belonging to the positive class (FPR=0).
+<div style="text-align:center" markdown="1">
+<img alt="tradeoff between maximizing our True Positive Rate and minimizing our False Positive Rate" src="/images/ImbalancedData/roc_cutoff-1.gif">
+</div>
+This tradeoff can be visualized in this <a href="http://www.navan.name/roc/">demonstration</a> in which you can adjust the class distributions and classification threshold.</p>
+<p>The <strong>area under the curve (AUC)</strong> is a single-value metric for which attempts to summarize an ROC curve to evaluate the quality of a classifier. As the name implies, this metric approximates the area under the ROC curve for a given classifier. Recall that the ideal curve hugs the upper lefthand corner as closely as possible, giving us the ability to identify all true positives while avoiding false positives; this ideal model would have an AUC of 1. On the flipside, if your model was no better than a random guess, your TPR and FPR would increase in parallel to one another, corresponding with an AUC of 0.5.</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">roc_auc_score</span>
+<span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;navy&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;AUC: {auc}&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;False positive rate&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;True positive rate&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<h1>Class weight</h1>
+<p>One of the simplest ways to address the class imbalance is to simply provide a weight for each class which places more emphasis on the minority classes such that the end result is a classifier which can learn equally from all classes.
+To calculate the proper weights for each class, you can use the sklearn utility function shown in the example below.</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.utils.class_weight</span> <span class="kn">import</span> <span class="n">compute_class_weight</span>
+<span class="n">weights</span> <span class="o">=</span> <span class="n">compute_class_weight</span><span class="p">(</span><span class="s1">&#39;balanced&#39;</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</pre></div>
+
+
+<p>In a tree-based model where you're determining the optimal split according to some measure such as decreased entropy, you can simply scale the entropy component of each class by the corresponding weight such that you place more emphasis on the minority classes. As a reminder, the entropy of a node can be calculated as</p>
+<div style="text-align:center">
+<p><img alt="eq" src="/images/ImbalancedData/M6.png"></p>
+</div>
+<p>where pi is the fraction of data points within class i.</p>
+<p>In a gradient-based model, you can scale the calculated loss for each observation by the appropriate class weight such that you place more significance on the losses associated with minority classes. As a reminder, a common loss function for classification is the categorical cross entropy (which is very similar to the above equation, albeit with slight differences). This may be calculated as</p>
+<div style="text-align:center">
+<p><img alt="eq" src="/images/ImbalancedData/M7.png"></p>
+</div>
+<p>where yi represents the true class (typically a one-hot encoded vector) and y^i represents the predicted class distribution.</p>
+<h1>Oversampling</h1>
+<p>Another approach towards dealing with a class imbalance is to simply alter the dataset to remove such an imbalance. In this section, I'll discuss common techniques for oversampling the minority classes to increase the number of minority observations until we've reached a balanced dataset.</p>
+<h2>Random oversampling</h2>
+<p>The most naive method of oversampling is to randomly sample the minority classes and simply duplicate the sampled observations. With this technique, it's important to note that you're artificially reducing the variance of the dataset.</p>
+<h2>SMOTE</h2>
+<p>However, we can also use our existing dataset to synthetically generate new data points for the minority classes. Synthetic Minority Over-sampling Technique (SMOTE) is a technique that generates new observations by interpolating between observations in the original dataset.</p>
+<p>For a given observation x_i, a new (synthetic) observation is generated by interpolating between one of the k-nearest neighbors, x_zi.</p>
+<div style="text-align:center">
+<p><img alt="eq" src="/images/ImbalancedData/M9.png"></p>
+</div>
+<p>where λ is a random number in the range [0,1]. This interpolation will create a sample on the line between xixi and x_zi.</p>
+<div style="text-align:center">
+<p><img alt="eq" src="/images/ImbalancedData/sphx_glr_plot_illustration_generation_sample_001.png"></p>
+</div>
+<p><a href="http://contrib.scikit-learn.org/imbalanced-learn/stable/_images/sphx_glr_plot_illustration_generation_sample_0011.png">Image credit</a></p>
+<p>This algorithm has three options for selecting which observations, xixi, to use in generating new data points.</p>
+<ol>
+<li>regular: No selection rules, randomly sample all possible xixi.</li>
+<li>borderline: Separates all possible xixi into three classes using the k nearest neighbors of each point.</li>
+<li><em>noise</em>: all nearest-neighbors are from a different class than xixi</li>
+<li><em>in danger</em>: at least half of the nearest neighbors are of the same class as xixi</li>
+<li><em>safe</em>: all nearest neighbors are from the same class as xixi</li>
+<li>svm: Uses an SVM classifier to identify the support vectors (samples close to the decision boundary) and samples xixi from these points.</li>
+</ol>
+<h2>ADASYN</h2>
+<p>Adaptive Synthetic (ADASYN) sampling works in a similar manner as SMOTE, however, the number of samples generated for a given xixi is proportional to the number of nearby samples which  <strong>do not</strong>  belong to the same class as xixi. Thus, ADASYN tends to focus solely on outliers when generating new synthetic training examples.</p>
+<h1>Undersampling</h1>
+<p>Rather than oversampling the minority classes, it&#39;s also possible to achieve class balance by <em>undersampling</em> the majority class - essentially throwing away data to make it easier to learn characteristics about the minority classes.</p>
+<h2>Random undersampling</h2>
+<p>As with oversampling, a naive implementation would be to simply sample the majority class at random until reaching a similar number of observations as the minority classes. For example, if your majority class has 1,000 observations and you have a minority class with 20 observations, you would collect your training data for the majority class by randomly sampling 20 observations from the original 1,000. As you might expect, this could potentially result in removing key characteristics of the majority class.</p>
+<h2>Near miss</h2>
+<p>The general idea behind near miss is to only the sample the points from the majority class necessary to distinguish between other classes.</p>
+<h3>NearMiss-1</h3>
+<p>select samples from the majority class for which the average distance of the N <em>closest</em> samples of a minority class is smallest.</p>
+<p><div style="text-align:center" markdown="1">
+<img alt="eq" src="/images/ImbalancedData/sphx_glr_plot_illustration_nearmiss_0011_2.png">
+</div></p>
+<h3>NearMiss-2</h3>
+<p>select samples from the majority class for which the average distance of the N <em>farthest</em> samples of a minority class is smallest.</p>
+<p><div style="text-align:center" markdown="1">
+<img alt="eq" src="/images/ImbalancedData/sphx_glr_plot_illustration_nearmiss_0021_3.png">
+</div></p>
+<h2>Tomeks links</h2>
+<p>A Tomek’s link is defined as two observations of different classes (x and y) such that there is no example z for which:</p>
+<p><div style="text-align:center" markdown="1">
+<img alt="eq" src="/images/ImbalancedData/M10.png">
+</div></p>
+<p>where d() is the distance between the two samples. In other words, a Tomek’s link exists if two observations of different classes are the nearest neighbors of each other. In the figure below, a Tomek’s link is illustrated by highlighting the samples of interest in green.</p>
+<p><div style="text-align:center" markdown="1">
+<img alt="eq" src="/images/ImbalancedData/tomeks.png">
+</div></p>
+<p>For this undersampling strategy, we'll remove any observations from the majority class for which a Tomek's link is identified. Depending on the dataset, this technique won't actually achieve a balance among the classes - it will simply "clean" the dataset by removing some noisy observations, which may result in an easier classification problem. As I discussed earlier, most classifiers will still perform adequately for imbalanced datasets as long as there's a clear separation between the classifiers. Thus, by focusing on removing noisy examples of the majority class, we can improve the performance of our classifier even if we don't necessarily balance the classes.</p>
+<h2>Edited nearest neighbors</h2>
+<p>EditedNearestNeighbours applies a nearest-neighbors algorithm and “edit” the dataset by removing samples which do not agree “enough” with their neighboorhood. For each sample in the class to be under-sampled, the nearest-neighbours are computed and if the selection criterion is not fulfilled, the sample is removed.</p>
+<p>This is a similar approach as Tomek's links in the respect that we're not necessarily focused on actually achieving a class balance, we're simply looking to remove noisy observations in an attempt to make for an easier classification problem.</p>
+<h1>HandsOn Notebook:</h1>
+<p>To demonstrate these various techniques, I've trained a number of models on the UCI Wine Quality dataset where I've generated my target by asserting that observations with a quality rating less than or equal to 4 are "low quality" wine and observations with a quality rating greater than or equal to 5 are "high quality" wine.
+I provide the notebook I wrote to explore these techniques in a <a href="https://github.com/mohcinemadkour/imbalanced-data">Github repo</a> if you're interested in exploring this further. I highly encourage you to check out this notebook and perform the same experiment on a different dataset to see how it compares - let me know in the comment section!</p>
+<h1>Further reading</h1>
+<ul>
+<li>[Learning from Imbalanced Data - Literature Review] (http://ieeexplore.ieee.org/document/5128907/)</li>
+<li>[Learning from Imbalanced Classes] (https://svds.com/learning-imbalanced-classes/)</li>
+<li>[Learning from imbalanced data: open challenges and future directions] (https://rd.springer.com/article/10.1007/s13748-016-0094-0?utm_medium=affiliate&amp;utm_source=commission_junction&amp;utm_campaign=3_nsn6445_brand_PID4003003&amp;utm_content=de_textlink)</li>
+<li>[Handling imbalanced datasets in machine learning] (https://towardsdatascience.com/handling-imbalanced-datasets-in-machine-learning-7a0e84220f28)</li>
+</ul>
+            <div class="hr"></div>
+            <a href="#" class="go-top">Go Top</a>
+<div class="comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = "leafyleap-2"; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div><footer class="footer">
+    <p>&copy; Mohcine Madkour &ndash;
+        Built with <a href="https://github.com/PurePelicanTheme/pure">Pure Theme</a>
+        for <a href="http://blog.getpelican.com/">Pelican</a>
+    </p>
+</footer>        </div>
+    </div>
+</div>
+    <script>
+        var $top = $('.go-top');
+
+        // Show or hide the sticky footer button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                $top.fadeIn(200);
+            } else {
+                $top.fadeOut(200);
+            }
+        });
+
+        // Animate the scroll to top
+        $top.click(function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 300);
+        })
+
+        // Makes sure that the href="#" attached to the <a> elements
+        // don't scroll you back up the page.
+        $('body').on('click', 'a[href="#"]', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>

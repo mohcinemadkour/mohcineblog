@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mohcine Madkour, Big Data Architectures and more">
+
+
+        <title>End to End ETL process using CSV files and MySQL database // Mohcine Madkour // Big Data Architectures and more</title>
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.3.0/pure-min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../../../theme/css/pure.css">
+    <link rel="stylesheet" href="../../../../theme/css/pygments.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fitvids/1.0.1/jquery.fitvids.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".content").fitVids();
+        });
+    </script>
+</head>
+
+<body>
+<div class="pure-g-r" id="layout">
+    <div class="sidebar sidebar-article pure-u">
+        <header class="header-article">
+            <hgroup>
+                <a href="../../../../author/mohcine-madkour.html" title="See posts by Mohcine Madkour">
+                        <img class="avatar" alt="Mohcine Madkour" src="http://www.gravatar.com/avatar/ae08847efc1a85b710f326eb8ee2e907">
+                </a>
+                <h2 class="article-info">Mohcine Madkour</h2>
+                <small class="about-author"></small>
+                <h5>Published</h5>
+                <p>Sun 07 October 2018</p>
+                <a href="/">&larr;Home</a>
+            </hgroup>
+        </header>
+    </div>
+    <div class="pure-u">
+        <div class="content">
+            <section class="post">
+                <header class="post-header">
+                    <h1>End to End ETL process using CSV files and MySQL database</h1>
+                        <p class="post-meta">
+                            // under                                 <a class="post-category" href="../../../../tag/mysql/">MySQL</a>
+                                <a class="post-category" href="../../../../tag/database/">Database</a>
+                                <a class="post-category" href="../../../../tag/load-data/">Load data</a>
+                                <a class="post-category" href="../../../../tag/csv/">CSV</a>
+                        </p>
+                </header>
+            </section>
+            <p>This post explains an end to end process to move data from simple CSV files to a database server, in my case MySQL but you can do some tiny changes to have it work in any SQL language. I put the schema of the [database I generated from this code] (http://mohcinemadkour.github.io/DBSchema/) using schemaSPy. This is a 20 Gegabytes database I have cleaned and generated. I found this code also very useful wehn moving the database from development to production environments. I made this code in a modular format so the functions can be used if needed such as data_type function which detect the type of the column data and cast it to a python data type </p>
+<h2>Some notes</h2>
+<p>Usually when I need to upload a CSV I will use Periscope
+ Data's CSV functionality. It's fast, easy, allows me to join the data with all my databases, and automatically casts types and load the data. Sometimes, however, I like to interact directly with a MySQL cluster—usually for complex data transformations and modeling in Python. When interacting directly with a database, it can be a pain to write a create table statement and load your data. When the table is wide, you have two choices while writing your create table—spend the time to figure out the correct data types, or lazily import everything as text and deal with the type casting in SQL. The first is slow, and the second will get you in trouble down the road.</p>
+<p>Here I show an example of this case when I upload 20 Gega of EHR data in a CSV format which are daunting 100+ columns wide. I wanted to load the data into MySQL server and rather than be generous in my data types, I wanted to use the proper columns. I decided to speed up the load process by writing a Python script, which turned into a fun exercise in data type detection and automated data loading to database.</p>
+<h2>Check-list before start</h2>
+<p>First of all ... couple of things to check:</p>
+<ul>
+<li>Check your database is created and you have the required information (host name, database name, user, password)</li>
+<li>Names of columns can not have spaces</li>
+<li>Names of files will be the name of tables in the database</li>
+<li>The tables will be Droped if already exist</li>
+</ul>
+<h2>Import libraries and provide path to data and information for connection</h2>
+<p>The first step is to load our data, import our libraries, and load the data into a CSV reader object. The csv library will be used to iterate over the data, and the ast library will be used to determine data type.</p>
+<p>We will also use a few lists. "Longest" will be a list of the longest values in character length to specify varchar column capacity, "headers" will be a list of the column names, and "type_list" will be the updating list of column types as we iterate over our data.</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">mysql.connector</span>
+<span class="kn">from</span> <span class="nn">mysql.connector</span> <span class="kn">import</span> <span class="n">Error</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">listdir</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">isfile</span><span class="p">,</span> <span class="n">join</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">count</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">csv</span><span class="o">,</span> <span class="nn">ast</span> 
+<span class="c1">#import psycopg2</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+</pre></div>
+
+
+<p>Path and list of files I wanted to create the database from</p>
+<div class="highlight"><pre><span></span><span class="c1">#mypath=&quot;/home/mohcine/Databox/Data/SortedData/left/new/&quot;</span>
+<span class="n">mypath</span><span class="o">=</span><span class="s2">&quot;Your path to where the CSV files are located&quot;</span>
+<span class="n">onlyfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">listdir</span><span class="p">(</span><span class="n">mypath</span><span class="p">)</span> <span class="k">if</span> <span class="n">isfile</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">mypath</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;csv&quot;</span><span class="p">]</span>
+<span class="n">onlyfiles</span>
+</pre></div>
+
+
+<p>Database info</p>
+<div class="highlight"><pre><span></span><span class="c1"># Your creadential of the database</span>
+<span class="n">myhost</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+<span class="n">mydatabase</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+<span class="n">myuser</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+<span class="n">mypassword</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+</pre></div>
+
+
+<h2>Find the Data Type</h2>
+<p>Once we have our data, we need to find the data type for each row. This means we need to evaluate every value and cast to the most restrictive option, from decimalized numbers to integers, and from integers to strings.</p>
+<p>The function dataType does this. First, it evaluates to see if the value is text or a number, and then for the appropriate type of number if needed. This function consumes both the new data, and the current best type to evaluate against. </p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">dataType</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">current_type</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Evaluates numbers to an appropriate type, and strings an error</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;varchar&#39;</span>
+    <span class="k">except</span> <span class="ne">SyntaxError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;varchar&#39;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">])</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="s1">&#39;varchar&#39;</span><span class="p">]:</span>
+            <span class="c1"># Use smallest possible int type</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">-</span><span class="mi">32768</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="mi">32767</span><span class="p">)</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;bigint&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s1">&#39;smallint&#39;</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="o">-</span><span class="mi">2147483648</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="mi">2147483647</span><span class="p">)</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;bigint&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s1">&#39;int&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;bigint&#39;</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;varchar&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s1">&#39;decimal&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;varchar&#39;</span>
+</pre></div>
+
+
+<h2>Create tables</h2>
+<div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">onlyfiles</span><span class="p">:</span>
+    <span class="c1">#Create table from the generated statement      </span>
+    <span class="n">fo</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">mypath</span><span class="o">+</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">fo</span><span class="p">)</span>
+    <span class="n">longest</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">type_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="c1"># iterate over the rows in our CSV, call our function above, and populate our lists</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">longest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">type_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)):</span>
+                <span class="c1"># NA is the csv null value</span>
+                <span class="k">if</span> <span class="n">type_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;varchar&#39;</span> <span class="ow">or</span> <span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">var_type</span> <span class="o">=</span> <span class="n">dataType</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">type_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">type_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_type</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">longest</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="n">longest</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">fo</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="c1"># And use our lists to write the SQL statement.</span>
+
+    <span class="n">statement</span> <span class="o">=</span> <span class="s1">&#39;DROP TABLE IF EXISTS &#39;</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">mysql</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">myhost</span><span class="p">,</span><span class="n">database</span><span class="o">=</span><span class="n">mydatabase</span><span class="p">,</span><span class="n">user</span><span class="o">=</span><span class="n">myuser</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">mypassword</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span> 
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c1"># Make sure data is committed to the database</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">statement</span> <span class="o">=</span> <span class="s1">&#39;CREATE TABLE &#39;</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39; (&#39;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">headers</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">type_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;varchar&#39;</span><span class="p">:</span>
+            <span class="n">statement</span> <span class="o">=</span> <span class="p">(</span><span class="n">statement</span> <span class="o">+</span> <span class="s1">&#39;{} varchar({}),&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">headers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="nb">str</span><span class="p">(</span><span class="n">longest</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">statement</span> <span class="o">=</span> <span class="p">(</span><span class="n">statement</span> <span class="o">+</span> <span class="s1">&#39;{} {}&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">headers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">type_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">statement</span> <span class="o">=</span> <span class="n">statement</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;);&#39;</span>
+    <span class="k">print</span> <span class="p">(</span><span class="n">statement</span><span class="p">)</span>
+    <span class="c1">#Create table from the generated statement  </span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">mysql</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">myhost</span><span class="p">,</span><span class="n">database</span><span class="o">=</span><span class="n">mydatabase</span><span class="p">,</span><span class="n">user</span><span class="o">=</span><span class="n">myuser</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">mypassword</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span> 
+            <span class="k">print</span> <span class="p">(</span><span class="s2">&quot;connected&quot;</span><span class="p">)</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c1"># Make sure data is committed to the database</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<h2>Load Data from local csv files</h2>
+<div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">onlyfiles</span><span class="p">:</span>
+    <span class="c1">#print f</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">mypath</span><span class="o">+</span><span class="n">f</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+        <span class="n">csv_reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+        <span class="n">line_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">csv_reader</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cln</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">csv_reader</span><span class="p">)</span>
+                <span class="n">line_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">inserts</span><span class="o">=</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">cln</span><span class="p">:</span>
+                <span class="n">inserts</span><span class="o">=</span><span class="n">inserts</span><span class="o">+</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">l</span><span class="p">],)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inserts</span><span class="p">)</span>
+    <span class="c1">#print len(cln)</span>
+    <span class="n">i</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">col</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="n">cal</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">cln</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">col</span><span class="o">=</span> <span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="n">l</span><span class="o">+</span><span class="s2">&quot;,&quot;</span>
+            <span class="n">val</span><span class="o">=</span><span class="s2">&quot;(</span><span class="si">%s</span><span class="s2">,&quot;</span>
+            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">cln</span><span class="p">)):</span>
+            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+            <span class="n">col</span><span class="o">+=</span> <span class="n">l</span><span class="o">+</span><span class="s2">&quot;,&quot;</span>
+            <span class="n">val</span><span class="o">+=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">,&quot;</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">cln</span><span class="p">)):</span>
+            <span class="n">col</span><span class="o">+=</span><span class="n">l</span><span class="o">+</span><span class="s2">&quot;)&quot;</span>  
+            <span class="n">val</span><span class="o">+=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">)&quot;</span>
+            <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">mysql</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">myhost</span><span class="p">,</span><span class="n">database</span><span class="o">=</span><span class="n">mydatabase</span><span class="p">,</span><span class="n">user</span><span class="o">=</span><span class="n">myuser</span><span class="p">,</span><span class="n">password</span><span class="o">=</span><span class="n">mypassword</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span>       
+            <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;INSERT INTO &quot;</span><span class="o">+</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">col</span><span class="o">+</span><span class="s2">&quot;VALUES&quot;</span><span class="o">+</span><span class="n">val</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span><span class="n">each</span><span class="p">)</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c1"># Make sure data is committed to the database</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<h2>Check tables</h2>
+<p>Checking if the number of rows in the CVS files are matching the count of tables' rows in the database</p>
+<div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">onlyfiles</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">mypath</span><span class="o">+</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f1</span><span class="p">:</span>
+        <span class="n">csvlines</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">lineNum</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csvlines</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">lineNum</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">c</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> 
+    <span class="k">print</span> <span class="s2">&quot;The csv file {} has {} rows and {} columns &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">mypath</span><span class="o">+</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()),</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+            <div class="hr"></div>
+            <a href="#" class="go-top">Go Top</a>
+<div class="comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = "leafyleap-2"; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div><footer class="footer">
+    <p>&copy; Mohcine Madkour &ndash;
+        Built with <a href="https://github.com/PurePelicanTheme/pure">Pure Theme</a>
+        for <a href="http://blog.getpelican.com/">Pelican</a>
+    </p>
+</footer>        </div>
+    </div>
+</div>
+    <script>
+        var $top = $('.go-top');
+
+        // Show or hide the sticky footer button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                $top.fadeIn(200);
+            } else {
+                $top.fadeOut(200);
+            }
+        });
+
+        // Animate the scroll to top
+        $top.click(function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 300);
+        })
+
+        // Makes sure that the href="#" attached to the <a> elements
+        // don't scroll you back up the page.
+        $('body').on('click', 'a[href="#"]', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>

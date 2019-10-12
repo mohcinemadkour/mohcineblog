@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mohcine Madkour, Big Data Architectures and more">
+
+
+        <title>Practical Deep Learning for Time Series using fastai/ Pytorch: Part 1 // Mohcine Madkour // Big Data Architectures and more</title>
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.3.0/pure-min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../../../theme/css/pure.css">
+    <link rel="stylesheet" href="../../../../theme/css/pygments.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fitvids/1.0.1/jquery.fitvids.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".content").fitVids();
+        });
+    </script>
+</head>
+
+<body>
+<div class="pure-g-r" id="layout">
+    <div class="sidebar sidebar-article pure-u">
+        <header class="header-article">
+            <hgroup>
+                <a href="../../../../author/mohcine-madkour.html" title="See posts by Mohcine Madkour">
+                        <img class="avatar" alt="Mohcine Madkour" src="http://www.gravatar.com/avatar/ae08847efc1a85b710f326eb8ee2e907">
+                </a>
+                <h2 class="article-info">Mohcine Madkour</h2>
+                <small class="about-author"></small>
+                <h5>Published</h5>
+                <p>Sat 12 October 2019</p>
+                <a href="/">&larr;Home</a>
+            </hgroup>
+        </header>
+    </div>
+    <div class="pure-u">
+        <div class="content">
+            <section class="post">
+                <header class="post-header">
+                    <h1>Practical Deep Learning for Time Series using fastai/ Pytorch: Part 1</h1>
+                        <p class="post-meta">
+                            // under                                 <a class="post-category" href="../../../../tag/machine-learning/">Machine Learning</a>
+                                <a class="post-category" href="../../../../tag/timeseriesai/">timeseriesAI</a>
+                                <a class="post-category" href="../../../../tag/time-series-classification/">Time Series Classification</a>
+                                <a class="post-category" href="../../../../tag/fastai_timeseries/">fastai_timeseries</a>
+                        </p>
+                </header>
+            </section>
+            <p>timeseriesAI is a library built on top of fastai/ Pytorch to help you apply Deep Learning to your time series/ sequential datasets, in particular Time Series Classification (TSC) and Time Series Regression (TSR) problems.
+The library contains 3 major components: </p>
+<ol>
+<li>
+<p><strong>Notebooks</strong>: they are very practical, and show you how certain techniques can be easily applied. </p>
+</li>
+<li>
+<p><strong>fastai_timeseries</strong>: it's an extension of fastai's library that focuses on time series/ sequential problems. </p>
+</li>
+<li>
+<p><strong>torchtimeseries.models</strong> : it's a collection of some state-of-the-art time series/ sequential models.</p>
+</li>
+</ol>
+<h2>Notebooks</h2>
+<h4>1. Introduction to Time Series Classification (TSC):</h4>
+<ul>
+<li>This is an intro that nb that shows you how you can achieve high performance in 4 simple steps.</li>
+</ul>
+<h4>2. UCR_TCS:</h4>
+<ul>
+<li>The UCR datasets are broadly used in TSC problems as s bechmark to measure performance. This notebook will allow you to test any of the available datasets, with the model of your choice and any training scheme. You can easily tweak any of them to try to beat a SOTA.</li>
+</ul>
+<h4>3. New TS data augmentations:</h4>
+<ul>
+<li>You will see how you can apply successful data augmentation techniques (like mixup, cutout, and cutmix) to time series problems.</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="o">%%</span><span class="nx">javascript</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;collapsible_headings/main&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;hide_input/main&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;autosavetime/main&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;execute_time/ExecuteTime&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;code_prettify/code_prettify&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;scroll_down/main&#39;</span><span class="p">)</span>
+<span class="nx">utils</span><span class="p">.</span><span class="nx">load_extension</span><span class="p">(</span><span class="s1">&#39;jupyter-js-widgets/extension&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>&amp;lt;IPython.core.display.Javascript object&amp;gt;
+</pre></div>
+
+
+<h2>00. Purpose 😇</h2>
+<p>The purpose of this notebook is to show you how you can create a simple, state-of-the-art time series classification model using the great <strong>fastai-v1</strong> library in 4 steps:
+1. Import libraries
+2. Prepare data
+3. Build learner
+4. Train model</p>
+<p>In general, there are 3 main ways to classify time series, based on the input to the neural network:</p>
+<ul>
+<li>
+<p>raw data</p>
+</li>
+<li>
+<p>image data (encoded from raw data)</p>
+</li>
+<li>
+<p>feature data (extracted from raw data)</p>
+</li>
+</ul>
+<p>In this notebook, we will use the first approach. We will cover other approaches in future notebooks.</p>
+<p>Throughout the notebook you will see this ✳️. It means there's some value you need to select.</p>
+<h2>01. Import libraries 📚</h2>
+<p>There are some dependencies you need to have installed to be able to run this repo. If you don't have these packages you will need to install them: 
+- pip install Cython
+- pip install tslearn
+- pip install PyWavelets
+- pip install pyts
+- pip install fire
+- pip install nvidia-ml-py3</p>
+<div class="highlight"><pre><span></span><span class="o">%</span><span class="n">reload_ext</span> <span class="n">autoreload</span>
+<span class="o">%</span><span class="n">autoreload</span> <span class="mi">2</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">fastai</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">fastai_timeseries</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">torchtimeseries.models</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+<span class="k">print</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;fastai :&#39;</span><span class="p">,</span> <span class="n">fastai</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;torch  :&#39;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;device :&#39;</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>C:\Users\qq834\Google Drive\mohcineblog\Draft\timeseriesAI
+fastai : 1.0.58
+torch  : 1.1.0
+device : cuda
+</pre></div>
+
+
+<h2>02. Prepare data 🔢</h2>
+<h3>Download data ⬇️</h3>
+<p>In this notebook, we'll use one of the most widely used time series classification databases: UEA &amp; UCR Time Series Classification Repository. As of Sep 2019 it contains 128 univariate datasets and 30 multivariate datasets.</p>
+<div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">get_UCR_univariate_list</span><span class="p">())</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>[&#39;ACSF1&#39;,
+ &#39;Adiac&#39;,
+ &#39;AllGestureWiimoteX&#39;,
+ &#39;AllGestureWiimoteY&#39;,
+ &#39;AllGestureWiimoteZ&#39;,
+ &#39;ArrowHead&#39;,
+ &#39;Beef&#39;,
+ &#39;BeetleFly&#39;,
+ &#39;BirdChicken&#39;,
+ &#39;BME&#39;,
+ &#39;Car&#39;,
+ &#39;CBF&#39;,
+ &#39;Chinatown&#39;,
+ &#39;ChlorineConcentration&#39;,
+ &#39;CinCECGtorso&#39;,
+ &#39;Coffee&#39;,
+ &#39;Computers&#39;,
+ &#39;CricketX&#39;,
+ &#39;CricketY&#39;,
+ &#39;CricketZ&#39;,
+ &#39;Crop&#39;,
+ &#39;DiatomSizeReduction&#39;,
+ &#39;DistalPhalanxOutlineAgeGroup&#39;,
+ &#39;DistalPhalanxOutlineCorrect&#39;,
+ &#39;DistalPhalanxTW&#39;,
+ &#39;DodgerLoopDay&#39;,
+ &#39;DodgerLoopGame&#39;,
+ &#39;DodgerLoopWeekend&#39;,
+ &#39;Earthquakes&#39;,
+ &#39;ECG200&#39;,
+ &#39;ECG5000&#39;,
+ &#39;ECGFiveDays&#39;,
+ &#39;ElectricDevices&#39;,
+ &#39;EOGHorizontalSignal&#39;,
+ &#39;EOGVerticalSignal&#39;,
+ &#39;EthanolLevel&#39;,
+ &#39;FaceAll&#39;,
+ &#39;FaceFour&#39;,
+ &#39;FacesUCR&#39;,
+ &#39;FiftyWords&#39;,
+ &#39;Fish&#39;,
+ &#39;FordA&#39;,
+ &#39;FordB&#39;,
+ &#39;FreezerRegularTrain&#39;,
+ &#39;FreezerSmallTrain&#39;,
+ &#39;Fungi&#39;,
+ &#39;GestureMidAirD1&#39;,
+ &#39;GestureMidAirD2&#39;,
+ &#39;GestureMidAirD3&#39;,
+ &#39;GesturePebbleZ1&#39;,
+ &#39;GesturePebbleZ2&#39;,
+ &#39;GunPoint&#39;,
+ &#39;GunPointAgeSpan&#39;,
+ &#39;GunPointMaleVersusFemale&#39;,
+ &#39;GunPointOldVersusYoung&#39;,
+ &#39;Ham&#39;,
+ &#39;HandOutlines&#39;,
+ &#39;Haptics&#39;,
+ &#39;Herring&#39;,
+ &#39;HouseTwenty&#39;,
+ &#39;InlineSkate&#39;,
+ &#39;InsectEPGRegularTrain&#39;,
+ &#39;InsectEPGSmallTrain&#39;,
+ &#39;InsectWingbeatSound&#39;,
+ &#39;ItalyPowerDemand&#39;,
+ &#39;LargeKitchenAppliances&#39;,
+ &#39;Lightning2&#39;,
+ &#39;Lightning7&#39;,
+ &#39;Mallat&#39;,
+ &#39;Meat&#39;,
+ &#39;MedicalImages&#39;,
+ &#39;MelbournePedestrian&#39;,
+ &#39;MiddlePhalanxOutlineAgeGroup&#39;,
+ &#39;MiddlePhalanxOutlineCorrect&#39;,
+ &#39;MiddlePhalanxTW&#39;,
+ &#39;MixedShapes&#39;,
+ &#39;MixedShapesSmallTrain&#39;,
+ &#39;MoteStrain&#39;,
+ &#39;NonInvasiveFetalECGThorax1&#39;,
+ &#39;NonInvasiveFetalECGThorax2&#39;,
+ &#39;OliveOil&#39;,
+ &#39;OSULeaf&#39;,
+ &#39;PhalangesOutlinesCorrect&#39;,
+ &#39;Phoneme&#39;,
+ &#39;PickupGestureWiimoteZ&#39;,
+ &#39;PigAirwayPressure&#39;,
+ &#39;PigArtPressure&#39;,
+ &#39;PigCVP&#39;,
+ &#39;PLAID&#39;,
+ &#39;Plane&#39;,
+ &#39;PowerCons&#39;,
+ &#39;ProximalPhalanxOutlineAgeGroup&#39;,
+ &#39;ProximalPhalanxOutlineCorrect&#39;,
+ &#39;ProximalPhalanxTW&#39;,
+ &#39;RefrigerationDevices&#39;,
+ &#39;Rock&#39;,
+ &#39;ScreenType&#39;,
+ &#39;SemgHandGenderCh2&#39;,
+ &#39;SemgHandMovementCh2&#39;,
+ &#39;SemgHandSubjectCh2&#39;,
+ &#39;ShakeGestureWiimoteZ&#39;,
+ &#39;ShapeletSim&#39;,
+ &#39;ShapesAll&#39;,
+ &#39;SmallKitchenAppliances&#39;,
+ &#39;SmoothSubspace&#39;,
+ &#39;SonyAIBORobotSurface1&#39;,
+ &#39;SonyAIBORobotSurface2&#39;,
+ &#39;StarlightCurves&#39;,
+ &#39;Strawberry&#39;,
+ &#39;SwedishLeaf&#39;,
+ &#39;Symbols&#39;,
+ &#39;SyntheticControl&#39;,
+ &#39;ToeSegmentation1&#39;,
+ &#39;ToeSegmentation2&#39;,
+ &#39;Trace&#39;,
+ &#39;TwoLeadECG&#39;,
+ &#39;TwoPatterns&#39;,
+ &#39;UMD&#39;,
+ &#39;UWaveGestureLibraryAll&#39;,
+ &#39;UWaveGestureLibraryX&#39;,
+ &#39;UWaveGestureLibraryY&#39;,
+ &#39;UWaveGestureLibraryZ&#39;,
+ &#39;Wafer&#39;,
+ &#39;Wine&#39;,
+ &#39;WordSynonyms&#39;,
+ &#39;Worms&#39;,
+ &#39;WormsTwoClass&#39;,
+ &#39;Yoga&#39;]
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="c1">#pprint.pprint(get_UCR_multivariate_list())</span>
+</pre></div>
+
+
+<p>In the case of UCR data it's very easy to get data loaded. Let's select a dataset. You can modify this and select any one from the previous lists (univariate of multivariate).</p>
+<div class="highlight"><pre><span></span><span class="c1"># dataset id</span>
+<span class="n">dsid</span> <span class="o">=</span> <span class="s1">&#39;ChlorineConcentration&#39;</span>   <span class="c1"># ✳️</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_valid</span><span class="p">,</span> <span class="n">y_valid</span> <span class="o">=</span> <span class="n">get_UCR_data</span><span class="p">(</span><span class="n">dsid</span><span class="p">)</span>
+</pre></div>
+
+
+<p>☣️ <strong>Something very important when you prepare your own data is that data needs to be in a 3-d array with the following format:</strong></p>
+<ol>
+<li>Samples</li>
+<li>Features</li>
+<li>Sequence length (aka time steps)</li>
+</ol>
+<p>All UEA &amp; UCR Time Series Classification data have already been split between train and valid. When you use your own data, you'll have to split it yourself. We'll see examples of this in future notebooks.</p>
+<h3>Prepare databunch 💿</h3>
+<p>You always need to define the bs at the time of creating the databunch, the object that contains all data required.</p>
+<p>It's also best practice to scale the data using the train stats. There are several options available: </p>
+<ol>
+<li>
+<p>standardization or normalization.</p>
+</li>
+<li>
+<p>calculate them based on all samples, per channel or per sample. </p>
+</li>
+<li>
+<p>scale range (for normalization only).</p>
+</li>
+</ol>
+<p>The most common practice is to standardize data per channel.</p>
+<div class="highlight"><pre><span></span><span class="n">bs</span> <span class="o">=</span> <span class="mi">64</span>                            <span class="c1"># ✳️</span>
+<span class="n">seed</span> <span class="o">=</span> <span class="mi">1234</span>                        <span class="c1"># ✳️</span>
+<span class="n">scale_type</span> <span class="o">=</span> <span class="s1">&#39;standardize&#39;</span>         <span class="c1"># ✳️ &#39;standardize&#39;, &#39;normalize&#39;</span>
+<span class="n">scale_subtype</span> <span class="o">=</span> <span class="s1">&#39;per_channel&#39;</span>      <span class="c1"># ✳️ &#39;all_samples&#39;, &#39;per_channel&#39;, &#39;per_sample&#39;</span>
+<span class="n">scale_range</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>              <span class="c1"># ✳️ for normalization only: usually left to (-1, 1)</span>
+</pre></div>
+
+
+<p>Now, the last step in data preparation is to prepare a databunch.
+Time series data may come as numpy arrays, pandas dataframes, etc.
+The 2 most common ways to load data into a databunch will be from a numpy array/ torch tensors or a pandas dataframe. Let's see how we'd work in either case. </p>
+<h4>From 3D numpy arrays/ torch tensors</h4>
+<p>1) You need to first create ItemLists from TimeSeriesList (custom type of ItemList built for Time Series)</p>
+<p>2) You need to label the ItemLists. You'll find a lot of information <a href="https://docs.fast.ai/data_block.html">here</a></p>
+<p>3) You enter the train bs and val_bs and crate the databunch object. </p>
+<p>4) You add features and seq_len.</p>
+<div class="highlight"><pre><span></span><span class="n">db</span> <span class="o">=</span> <span class="p">(</span><span class="n">ItemLists</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">TimeSeriesList</span><span class="p">(</span><span class="n">X_train</span><span class="p">),</span> <span class="n">TimeSeriesList</span><span class="p">(</span><span class="n">X_valid</span><span class="p">))</span>
+      <span class="o">.</span><span class="n">label_from_lists</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="n">y_valid</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">databunch</span><span class="p">(</span><span class="n">bs</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">)),</span> <span class="n">val_bs</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_valid</span><span class="p">),</span> <span class="n">bs</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">cpus</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale_type</span><span class="o">=</span><span class="n">scale_type</span><span class="p">,</span> <span class="n">scale_subtype</span><span class="o">=</span><span class="n">scale_subtype</span><span class="p">,</span> <span class="n">scale_range</span><span class="o">=</span><span class="n">scale_range</span><span class="p">)</span>
+     <span class="p">)</span>
+<span class="n">db</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="nt">TSDataBunch</span><span class="o">;</span>
+
+<span class="nt">Train</span><span class="o">:</span> <span class="nt">LabelList</span> <span class="o">(</span><span class="nt">467</span> <span class="nt">items</span><span class="o">)</span>
+<span class="nt">x</span><span class="o">:</span> <span class="nt">TimeSeriesList</span>
+<span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">)</span>
+<span class="nt">y</span><span class="o">:</span> <span class="nt">CategoryList</span>
+<span class="nt">1</span><span class="o">,</span><span class="nt">3</span><span class="o">,</span><span class="nt">1</span><span class="o">,</span><span class="nt">3</span><span class="o">,</span><span class="nt">2</span>
+<span class="nt">Path</span><span class="o">:</span> <span class="o">.;</span>
+
+<span class="nt">Valid</span><span class="o">:</span> <span class="nt">LabelList</span> <span class="o">(</span><span class="nt">3840</span> <span class="nt">items</span><span class="o">)</span>
+<span class="nt">x</span><span class="o">:</span> <span class="nt">TimeSeriesList</span>
+<span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">1</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">166</span><span class="o">)</span>
+<span class="nt">y</span><span class="o">:</span> <span class="nt">CategoryList</span>
+<span class="nt">2</span><span class="o">,</span><span class="nt">2</span><span class="o">,</span><span class="nt">1</span><span class="o">,</span><span class="nt">3</span><span class="o">,</span><span class="nt">2</span>
+<span class="nt">Path</span><span class="o">:</span> <span class="o">.;</span>
+
+<span class="nt">Test</span><span class="o">:</span> <span class="nt">None</span>
+</pre></div>
+
+
+<h4>From pandas dataframe</h4>
+<div class="highlight"><pre><span></span><span class="n">dsid</span> <span class="o">=</span> <span class="s1">&#39;NATOPS&#39;</span> 
+<span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_valid</span><span class="p">,</span> <span class="n">y_valid</span> <span class="o">=</span> <span class="n">get_UCR_data</span><span class="p">(</span><span class="n">dsid</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]):</span>
+    <span class="n">data_ch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_valid</span><span class="p">))),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ch</span><span class="p">),</span>
+                              <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_valid</span><span class="p">))[:,</span> <span class="n">ch</span><span class="p">],</span> 
+                              <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">y_train</span><span class="p">,</span> <span class="n">y_valid</span><span class="p">))[:,</span> <span class="bp">None</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">data</span> <span class="o">=</span> <span class="n">data_ch</span>
+    <span class="k">else</span><span class="p">:</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="n">data_ch</span><span class="p">))</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;feat&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;str&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">path</span><span class="o">/</span><span class="n">f</span><span class="s1">&#39;data/UCR/{dsid}/{dsid}.csv&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="o">/</span><span class="n">f</span><span class="s1">&#39;data/UCR/{dsid}/{dsid}.csv&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>(8640, 53)
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>feat</th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>...</th>
+      <th>42</th>
+      <th>43</th>
+      <th>44</th>
+      <th>45</th>
+      <th>46</th>
+      <th>47</th>
+      <th>48</th>
+      <th>49</th>
+      <th>50</th>
+      <th>target</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.0</td>
+      <td>-0.372758</td>
+      <td>-0.367844</td>
+      <td>-0.378445</td>
+      <td>-0.386751</td>
+      <td>-0.417101</td>
+      <td>-0.447204</td>
+      <td>-0.423585</td>
+      <td>-0.318506</td>
+      <td>-0.144364</td>
+      <td>...</td>
+      <td>-0.477529</td>
+      <td>-0.487402</td>
+      <td>-0.485995</td>
+      <td>-0.480247</td>
+      <td>-0.496073</td>
+      <td>-0.491603</td>
+      <td>-0.537007</td>
+      <td>-0.475939</td>
+      <td>-0.479505</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>0.0</td>
+      <td>-0.547370</td>
+      <td>-0.546334</td>
+      <td>-0.549748</td>
+      <td>-0.546891</td>
+      <td>-0.550253</td>
+      <td>-0.548429</td>
+      <td>-0.549099</td>
+      <td>-0.556074</td>
+      <td>-0.555707</td>
+      <td>...</td>
+      <td>-0.530492</td>
+      <td>-0.537032</td>
+      <td>-0.528957</td>
+      <td>-0.520373</td>
+      <td>-0.530154</td>
+      <td>-0.528187</td>
+      <td>-0.533726</td>
+      <td>-0.528338</td>
+      <td>-0.518618</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>0.0</td>
+      <td>-0.587062</td>
+      <td>-0.587322</td>
+      <td>-0.586417</td>
+      <td>-0.584654</td>
+      <td>-0.585361</td>
+      <td>-0.583648</td>
+      <td>-0.582933</td>
+      <td>-0.583448</td>
+      <td>-0.585703</td>
+      <td>...</td>
+      <td>-0.598846</td>
+      <td>-0.596118</td>
+      <td>-0.594087</td>
+      <td>-0.598232</td>
+      <td>-0.604513</td>
+      <td>-0.607462</td>
+      <td>-0.606236</td>
+      <td>-0.602293</td>
+      <td>-0.600885</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>0.0</td>
+      <td>-0.514671</td>
+      <td>-0.518640</td>
+      <td>-0.521285</td>
+      <td>-0.522843</td>
+      <td>-0.529080</td>
+      <td>-0.589589</td>
+      <td>-0.735513</td>
+      <td>-0.963720</td>
+      <td>-1.168972</td>
+      <td>...</td>
+      <td>-1.566254</td>
+      <td>-1.210887</td>
+      <td>-0.879528</td>
+      <td>-0.638007</td>
+      <td>-0.532520</td>
+      <td>-0.577928</td>
+      <td>-0.628697</td>
+      <td>-0.632625</td>
+      <td>-0.606548</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>0.0</td>
+      <td>-0.718601</td>
+      <td>-0.721093</td>
+      <td>-0.717955</td>
+      <td>-0.722386</td>
+      <td>-0.728969</td>
+      <td>-0.722774</td>
+      <td>-0.730497</td>
+      <td>-0.737313</td>
+      <td>-0.739868</td>
+      <td>...</td>
+      <td>-0.680790</td>
+      <td>-0.686406</td>
+      <td>-0.704122</td>
+      <td>-0.722950</td>
+      <td>-0.708337</td>
+      <td>-0.690788</td>
+      <td>-0.692195</td>
+      <td>-0.702812</td>
+      <td>-0.701643</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 53 columns</p>
+</div>
+
+<div class="highlight"><pre><span></span><span class="n">dsid</span> <span class="o">=</span> <span class="s1">&#39;NATOPS&#39;</span>   <span class="c1"># ✳️</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="o">/</span><span class="n">f</span><span class="s1">&#39;data/UCR/{dsid}/{dsid}.csv&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>(8640, 53)
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>feat</th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>...</th>
+      <th>42</th>
+      <th>43</th>
+      <th>44</th>
+      <th>45</th>
+      <th>46</th>
+      <th>47</th>
+      <th>48</th>
+      <th>49</th>
+      <th>50</th>
+      <th>target</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.0</td>
+      <td>-0.372758</td>
+      <td>-0.367844</td>
+      <td>-0.378445</td>
+      <td>-0.386751</td>
+      <td>-0.417101</td>
+      <td>-0.447204</td>
+      <td>-0.423585</td>
+      <td>-0.318506</td>
+      <td>-0.144364</td>
+      <td>...</td>
+      <td>-0.477529</td>
+      <td>-0.487402</td>
+      <td>-0.485995</td>
+      <td>-0.480247</td>
+      <td>-0.496073</td>
+      <td>-0.491603</td>
+      <td>-0.537007</td>
+      <td>-0.475939</td>
+      <td>-0.479505</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>0.0</td>
+      <td>-0.547370</td>
+      <td>-0.546334</td>
+      <td>-0.549748</td>
+      <td>-0.546891</td>
+      <td>-0.550253</td>
+      <td>-0.548429</td>
+      <td>-0.549099</td>
+      <td>-0.556074</td>
+      <td>-0.555707</td>
+      <td>...</td>
+      <td>-0.530492</td>
+      <td>-0.537032</td>
+      <td>-0.528957</td>
+      <td>-0.520373</td>
+      <td>-0.530154</td>
+      <td>-0.528187</td>
+      <td>-0.533726</td>
+      <td>-0.528338</td>
+      <td>-0.518618</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>0.0</td>
+      <td>-0.587062</td>
+      <td>-0.587322</td>
+      <td>-0.586417</td>
+      <td>-0.584654</td>
+      <td>-0.585361</td>
+      <td>-0.583648</td>
+      <td>-0.582933</td>
+      <td>-0.583448</td>
+      <td>-0.585703</td>
+      <td>...</td>
+      <td>-0.598846</td>
+      <td>-0.596118</td>
+      <td>-0.594087</td>
+      <td>-0.598232</td>
+      <td>-0.604513</td>
+      <td>-0.607462</td>
+      <td>-0.606236</td>
+      <td>-0.602293</td>
+      <td>-0.600885</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>0.0</td>
+      <td>-0.514671</td>
+      <td>-0.518640</td>
+      <td>-0.521285</td>
+      <td>-0.522843</td>
+      <td>-0.529080</td>
+      <td>-0.589589</td>
+      <td>-0.735513</td>
+      <td>-0.963720</td>
+      <td>-1.168972</td>
+      <td>...</td>
+      <td>-1.566254</td>
+      <td>-1.210887</td>
+      <td>-0.879528</td>
+      <td>-0.638007</td>
+      <td>-0.532520</td>
+      <td>-0.577928</td>
+      <td>-0.628697</td>
+      <td>-0.632625</td>
+      <td>-0.606548</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>0.0</td>
+      <td>-0.718601</td>
+      <td>-0.721093</td>
+      <td>-0.717955</td>
+      <td>-0.722386</td>
+      <td>-0.728969</td>
+      <td>-0.722774</td>
+      <td>-0.730497</td>
+      <td>-0.737313</td>
+      <td>-0.739868</td>
+      <td>...</td>
+      <td>-0.680790</td>
+      <td>-0.686406</td>
+      <td>-0.704122</td>
+      <td>-0.722950</td>
+      <td>-0.708337</td>
+      <td>-0.690788</td>
+      <td>-0.692195</td>
+      <td>-0.702812</td>
+      <td>-0.701643</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 53 columns</p>
+</div>
+
+<p>🔎 To create the TimeSeriesList, you need to select the columns that contain the time series only, neither the target, not the feature (for multivariate TS).</p>
+<p>🔎 You should use <strong>label_cls=CategoryList</strong> when labels are floats but it is a classification problem. Otherwise, the fastai library would take it as a regression problem.</p>
+<p>1) You need to first TimeSeriesList (custom type of ItemList built for Time Series) from the dataframe. As cols you should only enter the data from the time series (X values, not y).</p>
+<p>2) Then you split the TimeSeriesList into 2 lists (traina and valid). There are multiple ways to do that. More info <a href="https://docs.fast.ai/data_block.html">here</a></p>
+<p>3) You need to label the ItemLists. You'll find a lot of information <a href="https://docs.fast.ai/data_block.html">here</a></p>
+<p>4) You enter the train bs and val_bs and crate the databunch object. </p>
+<p>5) You add features and seq_len.</p>
+<div class="highlight"><pre><span></span><span class="n">db</span> <span class="o">=</span> <span class="p">(</span><span class="n">TimeSeriesList</span><span class="o">.</span><span class="n">from_df</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">feat</span><span class="o">=</span><span class="s1">&#39;feat&#39;</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">split_by_rand_pct</span><span class="p">(</span><span class="n">valid_pct</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">label_from_df</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="n">label_cls</span><span class="o">=</span><span class="n">CategoryList</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">databunch</span><span class="p">(</span><span class="n">bs</span><span class="o">=</span><span class="n">bs</span><span class="p">,</span>  <span class="n">val_bs</span><span class="o">=</span><span class="n">bs</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>  <span class="n">num_workers</span><span class="o">=</span><span class="n">cpus</span><span class="p">,</span>  <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">scale_type</span><span class="o">=</span><span class="n">scale_type</span><span class="p">,</span> <span class="n">scale_subtype</span><span class="o">=</span><span class="n">scale_subtype</span><span class="p">,</span> <span class="n">scale_range</span><span class="o">=</span><span class="n">scale_range</span><span class="p">)</span>
+     <span class="p">)</span>
+<span class="n">db</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="nt">TSDataBunch</span><span class="o">;</span>
+
+<span class="nt">Train</span><span class="o">:</span> <span class="nt">LabelList</span> <span class="o">(</span><span class="nt">288</span> <span class="nt">items</span><span class="o">)</span>
+<span class="nt">x</span><span class="o">:</span> <span class="nt">TimeSeriesList</span>
+<span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">)</span>
+<span class="nt">y</span><span class="o">:</span> <span class="nt">CategoryList</span>
+<span class="nt">1</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">1</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">0</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">1</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">2</span><span class="p">.</span><span class="nc">0</span>
+<span class="nt">Path</span><span class="o">:</span> <span class="o">.;</span>
+
+<span class="nt">Valid</span><span class="o">:</span> <span class="nt">LabelList</span> <span class="o">(</span><span class="nt">72</span> <span class="nt">items</span><span class="o">)</span>
+<span class="nt">x</span><span class="o">:</span> <span class="nt">TimeSeriesList</span>
+<span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">),</span><span class="nt">TimeSeries</span><span class="o">(</span><span class="nt">ch</span><span class="o">=</span><span class="nt">24</span><span class="o">,</span> <span class="nt">seq_len</span><span class="o">=</span><span class="nt">52</span><span class="o">)</span>
+<span class="nt">y</span><span class="o">:</span> <span class="nt">CategoryList</span>
+<span class="nt">3</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">5</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">2</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">0</span><span class="p">.</span><span class="nc">0</span><span class="o">,</span><span class="nt">4</span><span class="p">.</span><span class="nc">0</span>
+<span class="nt">Path</span><span class="o">:</span> <span class="o">.;</span>
+
+<span class="nt">Test</span><span class="o">:</span> <span class="nt">None</span>
+</pre></div>
+
+
+<h3>Visualize data</h3>
+<div class="highlight"><pre><span></span><span class="n">db</span><span class="o">.</span><span class="n">show_batch</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_32_0.png"></p>
+<h2>03. Build learner 🏗</h2>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtimeseries.models</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="c1"># Select one arch from these state-of-the-art time series/ 1D models:</span>
+<span class="c1"># ResCNN, FCN, InceptionTime, ResNet</span>
+<span class="n">arch</span> <span class="o">=</span> <span class="n">InceptionTime</span>                     <span class="c1"># ✳️   </span>
+<span class="n">arch_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>                     <span class="c1"># ✳️ </span>
+<span class="n">opt_func</span><span class="o">=</span><span class="n">Ranger</span>                          <span class="c1"># ✳️ a state-of-the-art optimizer</span>
+<span class="n">loss_func</span> <span class="o">=</span> <span class="n">LabelSmoothingCrossEntropy</span><span class="p">()</span> <span class="c1"># ✳️</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">arch</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="n">db</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="o">**</span><span class="n">arch_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">opt_func</span><span class="o">=</span><span class="n">opt_func</span><span class="p">,</span> <span class="n">loss_func</span><span class="o">=</span><span class="n">loss_func</span><span class="p">)</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;stage_0&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">learn</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">learn</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>InceptionTime(
+  (block): InceptionBlock(
+    (inc_mods): ModuleList(
+      (0): Inception(
+        (conv_layers): ModuleList(
+          (0): Conv1d(24, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(24, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(24, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(24, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+      (1): Inception(
+        (bottleneck): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (conv_layers): ModuleList(
+          (0): Conv1d(32, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(32, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(32, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+      (2): Inception(
+        (bottleneck): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (conv_layers): ModuleList(
+          (0): Conv1d(32, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(32, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(32, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+      (3): Inception(
+        (bottleneck): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (conv_layers): ModuleList(
+          (0): Conv1d(32, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(32, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(32, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+      (4): Inception(
+        (bottleneck): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (conv_layers): ModuleList(
+          (0): Conv1d(32, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(32, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(32, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+      (5): Inception(
+        (bottleneck): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (conv_layers): ModuleList(
+          (0): Conv1d(32, 32, kernel_size=(39,), stride=(1,), padding=(19,))
+          (1): Conv1d(32, 32, kernel_size=(19,), stride=(1,), padding=(9,))
+          (2): Conv1d(32, 32, kernel_size=(9,), stride=(1,), padding=(4,))
+        )
+        (maxpool): MaxPool1d(kernel_size=3, stride=1, padding=1, dilation=1, ceil_mode=False)
+        (conv): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+        (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (act): ReLU()
+      )
+    )
+    (res_layers): ModuleList(
+      (0): None
+      (1): None
+      (2): Sequential(
+        (0): Conv1d(24, 128, kernel_size=(1,), stride=(1,))
+        (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (3): None
+      (4): None
+      (5): Sequential(
+        (0): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+        (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (act): ReLU()
+  )
+  (gap): AdaptiveAvgPool1d(output_size=1)
+  (fc): Linear(in_features=128, out_features=6, bias=True)
+)
+InceptionTime
+======================================================================
+Layer (type)         Output Shape         Param #    Trainable 
+======================================================================
+Conv1d               [32, 52]             29,984     True      
+______________________________________________________________________
+Conv1d               [32, 52]             14,624     True      
+______________________________________________________________________
+Conv1d               [32, 52]             6,944      True      
+______________________________________________________________________
+MaxPool1d            [24, 52]             0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             800        True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+Conv1d               [32, 52]             39,968     True      
+______________________________________________________________________
+Conv1d               [32, 52]             19,488     True      
+______________________________________________________________________
+Conv1d               [32, 52]             9,248      True      
+______________________________________________________________________
+MaxPool1d            [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+Conv1d               [32, 52]             39,968     True      
+______________________________________________________________________
+Conv1d               [32, 52]             19,488     True      
+______________________________________________________________________
+Conv1d               [32, 52]             9,248      True      
+______________________________________________________________________
+MaxPool1d            [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+Conv1d               [32, 52]             39,968     True      
+______________________________________________________________________
+Conv1d               [32, 52]             19,488     True      
+______________________________________________________________________
+Conv1d               [32, 52]             9,248      True      
+______________________________________________________________________
+MaxPool1d            [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+Conv1d               [32, 52]             39,968     True      
+______________________________________________________________________
+Conv1d               [32, 52]             19,488     True      
+______________________________________________________________________
+Conv1d               [32, 52]             9,248      True      
+______________________________________________________________________
+MaxPool1d            [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+Conv1d               [32, 52]             39,968     True      
+______________________________________________________________________
+Conv1d               [32, 52]             19,488     True      
+______________________________________________________________________
+Conv1d               [32, 52]             9,248      True      
+______________________________________________________________________
+MaxPool1d            [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [32, 52]             4,128      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+Conv1d               [128, 52]            3,200      True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+Conv1d               [128, 52]            16,512     True      
+______________________________________________________________________
+BatchNorm1d          [128, 52]            256        True      
+______________________________________________________________________
+ReLU                 [128, 52]            0          False     
+______________________________________________________________________
+AdaptiveAvgPool1d    [128, 1]             0          False     
+______________________________________________________________________
+Linear               [6]                  774        True      
+______________________________________________________________________
+
+Total params: 459,686
+Total trainable params: 459,686
+Total non-trainable params: 0
+Optimized with 00200EAA6AC80
+Using true weight decay as discussed in https://www.fast.ai/2018/07/02/adam-weight-decay/ 
+Loss function : LabelSmoothingCrossEntropy
+======================================================================
+Callbacks functions applied
+</pre></div>
+
+
+<h2>04. Train model 🚵🏼‍</h2>
+<h3>LR find 🔎</h3>
+<div class="highlight"><pre><span></span><span class="n">learn</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;stage_0&#39;</span><span class="p">)</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">lr_find</span><span class="p">()</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">suggestion</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>LR Finder is complete, type {learner_name}.recorder.plot() to see the graph.
+Min numerical gradient: 1.91E-02
+Min loss divided by 10: 2.75E-01
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_38_2.png"></p>
+<h3>Train 🏃🏽‍♀️</h3>
+<div class="highlight"><pre><span></span><span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>         <span class="c1"># ✳️ </span>
+<span class="n">max_lr</span> <span class="o">=</span> <span class="mf">1e-2</span>        <span class="c1"># ✳️ </span>
+<span class="n">warmup</span> <span class="o">=</span> <span class="bp">False</span>       <span class="c1"># ✳️</span>
+<span class="n">pct_start</span> <span class="o">=</span> <span class="o">.</span><span class="mi">7</span>       <span class="c1"># ✳️</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">accuracy</span><span class="p">]</span> <span class="c1"># ✳️</span>
+<span class="n">wd</span> <span class="o">=</span> <span class="mf">1e-2</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="n">learn</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;stage_0&#39;</span><span class="p">)</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">fit_one_cycle</span><span class="p">(</span><span class="n">epochs</span><span class="p">,</span> <span class="n">max_lr</span><span class="o">=</span><span class="n">max_lr</span><span class="p">,</span> <span class="n">pct_start</span><span class="o">=</span><span class="n">pct_start</span><span class="p">,</span> <span class="n">moms</span><span class="o">=</span><span class="p">(</span><span class="o">.</span><span class="mi">95</span><span class="p">,</span> <span class="o">.</span><span class="mi">85</span><span class="p">)</span> <span class="k">if</span> <span class="n">warmup</span> <span class="k">else</span> <span class="p">(</span><span class="o">.</span><span class="mi">95</span><span class="p">,</span> <span class="o">.</span><span class="mi">95</span><span class="p">),</span>
+                    <span class="n">div_factor</span><span class="o">=</span><span class="mf">25.0</span> <span class="k">if</span> <span class="n">warmup</span> <span class="k">else</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">wd</span><span class="o">=</span><span class="n">wd</span><span class="p">)</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;stage_1&#39;</span><span class="p">)</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">plot_lr</span><span class="p">()</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">plot_losses</span><span class="p">()</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">plot_metrics</span><span class="p">()</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="o">div</span><span class="s s-Atom">&amp;gt</span><span class="p">;</span>
+    <span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="s s-Atom">style&amp;gt</span><span class="p">;</span>
+        <span class="cm">/* Turns off some styling */</span>
+        <span class="s s-Atom">progress</span> <span class="p">{</span>
+            <span class="cm">/* gets rid of default border in Firefox and Opera. */</span>
+            <span class="nn">border</span><span class="p">:</span> <span class="s s-Atom">none</span><span class="p">;</span>
+            <span class="cm">/* Needs to be in here for Safari polyfill so background images work as expected. */</span>
+            <span class="s s-Atom">background</span><span class="o">-</span><span class="nn">size</span><span class="p">:</span> <span class="s s-Atom">auto</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="p">.</span><span class="s s-Atom">progress</span><span class="o">-</span><span class="s s-Atom">bar</span><span class="o">-</span><span class="s s-Atom">interrupted</span><span class="p">,</span> <span class="p">.</span><span class="s s-Atom">progress</span><span class="o">-</span><span class="s s-Atom">bar</span><span class="o">-</span><span class="nn">interrupted</span><span class="p">::-</span><span class="s s-Atom">webkit</span><span class="o">-</span><span class="s s-Atom">progress</span><span class="o">-</span><span class="s s-Atom">bar</span> <span class="p">{</span>
+            <span class="nn">background</span><span class="p">:</span> <span class="s s-Atom">#</span><span class="nv">F44336</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="o">/</span><span class="s s-Atom">style&amp;gt</span><span class="p">;</span>
+  <span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="s s-Atom">progress</span> <span class="s s-Atom">value=&#39;8&#39;</span> <span class="s s-Atom">class=&#39;&#39;</span> <span class="s s-Atom">max=&#39;100&#39;</span><span class="p">,</span> <span class="s s-Atom">style=&#39;width:300px; height:20px; vertical-align: middle;&#39;&amp;gt</span><span class="p">;</span><span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="o">/</span><span class="s s-Atom">progress&amp;gt</span><span class="p">;</span>
+  <span class="mf">8.00</span><span class="c1">% [8/100 21:24&amp;lt;4:06:06]</span>
+<span class="s s-Atom">&amp;lt</span><span class="p">;</span><span class="o">/div</span><span class="s s-Atom">&amp;gt</span><span class="p">;</span>
+</pre></div>
+
+
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: left;">
+      <th>epoch</th>
+      <th>train_loss</th>
+      <th>valid_loss</th>
+      <th>accuracy</th>
+      <th>time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>1.803898</td>
+      <td>1.792291</td>
+      <td>0.166667</td>
+      <td>02:39</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>1.735648</td>
+      <td>1.786683</td>
+      <td>0.166667</td>
+      <td>02:39</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>1.612863</td>
+      <td>1.773017</td>
+      <td>0.166667</td>
+      <td>02:39</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>1.480261</td>
+      <td>1.743848</td>
+      <td>0.250000</td>
+      <td>02:39</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>1.360391</td>
+      <td>1.684378</td>
+      <td>0.597222</td>
+      <td>02:40</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>1.259697</td>
+      <td>1.414256</td>
+      <td>0.763889</td>
+      <td>02:41</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>1.174970</td>
+      <td>1.170152</td>
+      <td>0.819444</td>
+      <td>02:43</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>1.102794</td>
+      <td>0.943973</td>
+      <td>0.819444</td>
+      <td>02:40</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+
+    <div>
+        <style>
+            /* Turns off some styling */
+            progress {
+                /* gets rid of default border in Firefox and Opera. */
+                border: none;
+                /* Needs to be in here for Safari polyfill so background images work as expected. */
+                background-size: auto;
+            }
+            .progress-bar-interrupted, .progress-bar-interrupted::-webkit-progress-bar {
+                background: #F44336;
+            }
+        </style>
+      <progress value='0' class='' max='1', style='width:300px; height:20px; vertical-align: middle;'></progress>
+      0.00% [0/1 00:00<00:00]
+    </div>
+
+
+
+
+
+wzxhzdk:18
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>arch</th>
+      <th>accuracy</th>
+      <th>accuracy train loss</th>
+      <th>max_accuracy</th>
+      <th>n_params</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>InceptionTime</td>
+      <td>0.88359</td>
+      <td>0.88385</td>
+      <td>0.89193</td>
+      <td>406307</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+### Results
+
+
+
+wzxhzdk:19
+
+
+
+![png](/images/output_44_0.png)
+
+
+
+
+wzxhzdk:20
+
+
+
+
+wzxhzdk:21
+            <div class="hr"></div>
+            <a href="#" class="go-top">Go Top</a>
+<div class="comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = "leafyleap-2"; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div><footer class="footer">
+    <p>&copy; Mohcine Madkour &ndash;
+        Built with <a href="https://github.com/PurePelicanTheme/pure">Pure Theme</a>
+        for <a href="http://blog.getpelican.com/">Pelican</a>
+    </p>
+</footer>        </div>
+    </div>
+</div>
+    <script>
+        var $top = $('.go-top');
+
+        // Show or hide the sticky footer button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                $top.fadeIn(200);
+            } else {
+                $top.fadeOut(200);
+            }
+        });
+
+        // Animate the scroll to top
+        $top.click(function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 300);
+        })
+
+        // Makes sure that the href="#" attached to the <a> elements
+        // don't scroll you back up the page.
+        $('body').on('click', 'a[href="#"]', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>

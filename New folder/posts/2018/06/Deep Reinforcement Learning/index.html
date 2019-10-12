@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mohcine Madkour, Big Data Architectures and more">
+
+
+        <title>Deep Reinforcement Learning // Mohcine Madkour // Big Data Architectures and more</title>
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.3.0/pure-min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../../../theme/css/pure.css">
+    <link rel="stylesheet" href="../../../../theme/css/pygments.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fitvids/1.0.1/jquery.fitvids.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".content").fitVids();
+        });
+    </script>
+</head>
+
+<body>
+<div class="pure-g-r" id="layout">
+    <div class="sidebar sidebar-article pure-u">
+        <header class="header-article">
+            <hgroup>
+                <a href="../../../../author/mohcine-madkour.html" title="See posts by Mohcine Madkour">
+                        <img class="avatar" alt="Mohcine Madkour" src="http://www.gravatar.com/avatar/ae08847efc1a85b710f326eb8ee2e907">
+                </a>
+                <h2 class="article-info">Mohcine Madkour</h2>
+                <small class="about-author"></small>
+                <h5>Published</h5>
+                <p>Thu 14 June 2018</p>
+                <a href="/">&larr;Home</a>
+            </hgroup>
+        </header>
+    </div>
+    <div class="pure-u">
+        <div class="content">
+            <section class="post">
+                <header class="post-header">
+                    <h1>Deep Reinforcement Learning</h1>
+                        <p class="post-meta">
+                            // under                                 <a class="post-category" href="../../../../tag/deep-reinforcement-learning/">Deep Reinforcement Learning</a>
+                        </p>
+                </header>
+            </section>
+            <p>Today, we will explore Reinforcement Learning – a goal-oriented learning based on interaction with environment. Reinforcement Learning is said to be the hope of true artificial intelligence. And it is rightly said so, because the potential that Reinforcement Learning possesses is immense.
+Reinforcement learning refers to goal-oriented algorithms, which learn how to attain a complex objective (goal) or maximize along a particular dimension over many steps; for example, maximize the points won in a game over many moves. They can start from a blank slate, and under the right conditions they achieve superhuman performance. Like a child incentivized by spankings and candy, these algorithms are penalized when they make the wrong decisions and rewarded when they make the right ones – this is reinforcement.</p>
+<h1>Introduction to reinforcement learning</h1>
+<h2>The learning paradigm</h2>
+<p>The RL is kind of learning by doing, with no supervisor, but only a reward signal. The Feedback is  delayed and not instantaneous. In this kind of learning the time really matters and the agent’s actions affect the subsequent data it receives
+A reward Rt is a scalar feedback signal, It indicates how well agent is doing at step t. The agent’s job is to maximise cumulative reward. Reinforcement learning is based on the reward hypothesis, which states that all goals can be described by the <strong>Maximisation of expected cumulative reward</strong>. 
+Examples of Rewards can be +ve reward for following desired trajectory and −ve reward for crashing.
+The goal is to select actions to maximise total future reward. The actions may have long term consequences, and the reward may be delayed. Sometimes It may be better to sacrifice immediate reward to gain more long-term reward
+Examples are numerous. For example a financial investment (may take months to mature), and Refuelling a helicopter (might prevent a crash in several hours)
+Two fundamental problems in sequential decision making 
+<img alt="supervised vs rl" src="/images/dsrl.png"></p>
+<h2>Sequential Decision Making</h2>
+<p>The reinforcement learning id a Sequential Decision Making process. In general there is two types of environmnets: Fully Observable Environments which is recommended for Markov decision process in where the Agent state about the environmnet is identical with the environment state and with the information state; and the Partially Observable Environments in which the Partially Markov decision process can be applied. In this environment, the agent indirectly observes environment. The Agent must construct its own state representation whcih includes complete history, beliefs of environment state. The Recurrent neural network can be used in this case.</p>
+<h2>Components of an RL Agent</h2>
+<p>An RL agent may include one or more of these components: Policy: agent’s behaviour function, Value function: how good is each state and/or action, and Model: agent’s representation of the environment. The <strong>Policy</strong> is the agent’s behaviour. It is a map from state to action, e.g. We have two types : Deterministic policy: a = π(s) and Stochastic policy: π(a|s) = P[At = a|St = s]. The <strong>Value Function</strong> is a prediction of future reward. It is used to evaluate the goodness/badness of states And therefore to select between actions, e.g.]:<strong>vπ(s)</strong> = Eπ [Rt+1 + γRt+2 + γ2 Rt+3 + ... | St = s]. <strong>The model</strong> predicts what the environment will do next. The P predicts the next state, and the R predicts the next (immediate) reward.
+Pss'= P[St+1 = s | St = s, At = a], Ras = E [Rt+1 |St = s, At = a]</p>
+<h1>Types of reinforcement learning algorithms</h1>
+<p>RL algorithms that satisfy the <em>Markov property</em> are called the <em>Markov Decision Processes (MDP)</em>. The Markov property assumes that the current state is independent of the path that leads to that particular state. 
+<img alt="Markovian environments and Non Markovian environments" src="/images/markov.png">
+Hence, in Markovian problems a memoryless property of a stochastic process is assumed. In practice it means that the probability distribution of the future states depends only on the current state and not on the sequence of events that preceded. This is a useful property for stochastic processes as it allows for analysing the future by setting the present
+<img alt="State Transition from state s to state s'" src="/images/fig1_rl.png">
+An MDPs consist of state (s), action (a) sets and given any state and action to be taken, a transition probability function of each possible next state (s’) illustrated in figure 1. In addition, each taken action to arrive to the next state is rewarded giving each of all possible actions a reward value
+depending on the type of action. Each visited state is accredited by a value given to it according to a <strong>value function V(s)</strong> which represents how good it is for an agent to be in a given state. The value of a state s under a policy π is then denoted as Vπ(s) which in theory denotes the expected return when starting in state s and following a sequence of states to be visited according to the order defined in π thereafter. When this theorem is applied to a model-free control problem, the <strong>state-value function</strong> may
+not suffice as it does not show what action was taken for the state value to be acquired. Therefore, a similar function has been introduced representing an estimation of the value of each possible action in a state. This is described as the <strong>action-value function</strong> for policy π Qπ(s,a). Figure 2 illustrates an example of the relationship between the action-value function and the state-value function. In 2.a. the action-values are shown for each direction of the propagation, North, East, South, and West respectively. <strong>The state value function represents then the highest action-value possible in that state which is the action North in the example</strong>.<img alt="1a 1b" src="/images/rl_fig2.png"></p>
+<p>The optimal policy is denoted as the superscript asterisk to the action-value-function Q(s,a) and state value-function V(s). Formally, the optimal value function is then given by:
+<img alt="Eq1" src="/images/eq1.png">
+Where Q*(s,a) is given by:
+<img alt="Eq2" src="/images/eq2.png">
+Herein, T(s, a, s’) is the transition probability to the next state s’ given state s and action a. γ presents the discount factor which is usually smaller than 1 and is used to discount for earlier values in order to assign
+higher values for sooner rewards. This is necessary to converge the algorithm.
+Substituting equation 3 in 2 gives the Bellman equation:
+<img alt="Eq3" src="/images/eq3.png">
+These updates will be appended to the states that were visited resulting (after a significant number of iterations) in state values showing how good to be in that state. In order to be able to choose between the states to select a policy, <strong>as many states as possible need to be visited</strong> in order to converge to an accurate estimation of the state value. Acquiring the highest reward depends on these visited states and the reward accumulated. However, in order to discover more states and potentially higher rewards, the agent needs to take actions it has never taken before. This is referred to as the <strong>trade-off between exploitation and exploration</strong>. This trade-off could be achieved by setting a variable denoted as Epsilon (ε) which gives the extent of exploration versus exploitation. A fully exploiting policy is referred to as an
+epsilon-greedy policy and holds a value of 0 for ε. Correspondingly, a fully exploring policy gives a value of 1 to ε and is referred to as an epsilon-soft policy. The learning can therefore be tuned between these two extremes in order to allow for convergence towards an optimal value by occasionally exploring new states and actions.</p>
+<h2>Categorisies of RL agents</h2>
+<p>Reinforcement learning is like trial-and-error learning. The agent should discover a good policy from its experiences of the environment and Without losing too much reward along the way. The <strong>Exploration</strong> finds more information about the environment. The <strong>Exploitation</strong> exploits known information to maximise reward. It is usually important to explore as well as exploit.
+An agent can evaluate the future Given a policy (<strong>Prediction</strong>) or optimise the future and find the best policy (<strong>Control</strong>)
+There is five types of agents: <strong>Value Based</strong> No Policy (Implicit)+ Value Function, <strong>Policy Based</strong>: Policy + No Value Function, <strong>Actor Critic</strong>: Policy+ Value Function, <strong>Model Free</strong>: Policy and/or Value Function+ No Model
+, <strong>Model Based</strong>: Policy and/or Value Function+ Model
+<img alt="RL Agents" src="/images/RLAgents.png"></p>
+<h2>Classes of RL algorithms</h2>
+<p>RL knows three fundamental classes of methods for solving these learning problems: <strong>Dynamic Programming (DP)</strong>, <strong>Monte Carlo methods</strong>,  <strong>Temporal-difference learning</strong>
+Dependent on the problem at stake, each of these methods could be more suitable than the other. <strong>DP</strong> methods are model-based and require therefore a complete and accurate model of the environment i.e. all the aforementioned functions of the environment need to be known to initiate learning. However,
+the environment is not always defined prior to the learning process which poses a challenge to this method. This is where the two other <strong>model-free</strong> learning methods come in handy. The <strong>Monte Carlo</strong> algorithms only require an experience sample such as a data set in which the states, actions and rewards
+of the (simulated) interaction with the environment. In comparison with DP methods, no model of the <strong>transition probability function</strong> is required and neither the <strong>dynamics</strong> of the environment. Monte Carlo algorithms solve the RL problem by <strong>averaging</strong> sample return of each <strong>episode</strong>. Only after the termination of an episode, that the value <strong>estimation</strong> and <strong>policies</strong> are updated. Hence, it is based on averages of complete returns of the value functions of each state. This class of algorithms does not exploit Markov property described before and is therefore more efficient in <strong>non-Markovian</strong> environments. On the other hand, <strong>Temporal-Difference methods</strong> do also not require a model of the environment but are like DP solving for incrementing <strong>step-by-step</strong> rather than <strong>episode-by-episode</strong>. Hence, TD methods exploit the <strong>Markovian property</strong> and perform usually better in Markovian environments.
+The choice between these two classes of model-free RL algorithms very much depends on the type of data set available. For continuous processes in which there are no fixed episodic transitions, <strong>Monte Carlo</strong> methods may not be the optimal solution as they average the return only at the end of each episode. <strong>TD</strong> algorithms might then be a better solution as they assign a reward incrementally over each state. This allows them to converge faster towards an optimal policy for large data sets with a large number state spaces.</p>
+<h2>Temporal-difference learning: On-policy and off-policy TD control</h2>
+<p><strong>TD</strong> algorithms comprise two important RL classes of algorithms divided in <strong>Off-Policy</strong> and <strong>On-Policy</strong> TD control algorithm classes. The difference between the two lays in the policy that is learned from the simulation or set of experiences (data). <strong>On-Policy TD control</strong> algorithms are often referred to as <strong>SARSA algorithms</strong> in which the letters refer to the sequence of State, Action, Reward associated with the state transition, next State, next Action. This sequence is followed in each <strong>time-step</strong> and is used to update the <strong>action-value</strong> of these two states according:
+<img alt="Eq4" src="/images/eq4.png">
+Here, α represents the step-size parameter which functions as the exponentially moving average parameter. It is especially useful for <strong>non-stationary</strong> environments for weighting recent rewards more heavily than long-past ones. This could also be illustrated by rearranging the above equation to:
+<img alt="Eq5" src="/images/eq5.png">
+If α is a number smaller than one for non-stationary environments which indicates that recent updates weight more than previous ones. This transition happens after every nonterminal state. The Q (st+1 ,at+1 ) components of every terminal state is defined as zero. Hence, every terminal state has an update value of 0. <strong>SARSA</strong> is called an on-policy algorithm because it updates the <strong>action-value-function</strong> according to the <strong>policy</strong> it is taking in every <strong>step</strong>. Therefore, it takes the epsilon-policy into account in order to arrive the optimal policy for a certain problem. <strong>Off-policy</strong> algorithms approximate the best possible policy even when that policy is not taken by the agent. Hence, <strong>Off-Policy</strong> algorithms base the update of the <strong>state action-value</strong> function on the assumption of <strong>optimal behaviour</strong> without taking into account the <strong>epsilon policy</strong> (the chance to take a negative action). The cliff figure shows a suitable example given by Sutton and Barto (1998) and which illustrates the policy outcome differences between the two types of TD algorithms <img alt="Cliff)" src="/images/cliff.png">. The cliff represents states with high negative reward. Since <strong>SARSA</strong> takes the <strong>epsilon policy</strong> into account, it learns that at some instances a non-optimal action will be taken which results in a high negative reward. Hence, it will learn to take the safe path rather than the optimal path. <strong>Q-learning algorithms</strong> on the other hand, will take the optimal path by which the highest total reward could be achieved. This is because it does not take the <strong>epsilon probability</strong> into account of taking an extremely negative action. This class of algorithms is denoted by the following equation:
+<img alt="Eq6" src="/images/eq6.png">
+This difference will inevitably influence the suitability for the type of application. </p>
+<h1>Markov Decision Processes</h1>
+<p>Markov decision processes formally describe an environment for reinforcement learning Where the environment is fully observable, i.e. The current state completely characterises the process.
+<img alt="MDP" src="/images/MDP.png">
+Almost all RL problems can be formalised as MDPs, e.g.Optimal control primarily deals with continuous MDPs, Partially observable problems can be converted into MDPs, Bandits are MDPs with one state
+The Markov Property states that "The future is independent of the past given the present” in other ways a state St is Markov if and only if
+P [S t+1 | S t ] = P [S t+1 | S 1 , ..., S t ]
+The state captures all relevant information from the history and once the state is known, the history may be thrown away. i.e. The state is a sufficient statistic of the future.</p>
+<p>For a Markov state s and successor state s' , the state transition
+probability is defined by Pss' = P[St+1 = s'| St = s]. The State transition matrix P defines transition probabilities from all states s to all successor states s' <img alt="State Transition Matrix" src="/images/State_Transition_Matrix.png">where each row of the matrix sums to 1</p>
+<p>A Markov process is a memoryless random process, i.e. a sequence
+of random states S1 , S2 , ... with the Markov property. Otherwise it is a tuple <S,P> with S is a (finite) set of states, P is a state transition probability matrix, Pss'= P [S t+1 = s'| St = s]
+<img alt="Example" src="/images/markov_process.png"></p>
+<p>A Markov reward process is a Markov chain with values.
+Definition: A Markov Reward Process is a tuple <S, P, R, γ>
+S is a finite set of states
+P is a state transition probability matrix,
+P ss'= P [St+1 = s'| St = s]
+R is a reward function, Rs = E [Rt+1 | St = s]
+γ is a discount factor, γ ∈ [0, 1]</p>
+<p>The return Gt is the total discounted reward from time-step t.
+G t = Rt+1 + γRt+2 + ...
+The discount γ ∈ [0, 1] is the present value of future rewards
+The value of receiving reward R after k + 1 time-steps is γkR.
+This values immediate reward above delayed reward.
+γ close to 0 leads to ”myopic” evaluation
+γ close to 1 leads to ”far-sighted” evaluation</p>
+<p>Most Markov reward and decision processes are discounted:
+<em> Mathematically convenient to discount rewards
+</em> Avoids infinite returns in cyclic Markov processes
+<em> Uncertainty about the future may not be fully represented
+</em> If the reward is financial, immediate rewards may earn more
+interest than delayed rewards
+<em> Animal/human behaviour shows preference for immediate
+reward
+</em> It is sometimes possible to use undiscounted Markov reward
+processes (i.e. γ = 1), e.g. if all sequences terminate.</p>
+<p>The value function v (s) gives the long-term value of state s
+Definition : The state value function v (s) of an MRP is the expected return
+starting from state s v (s) = E [G t | S t = s]
+<img alt="Value Function" src="/images/Value_Function.png"></p>
+<h1>Final Words</h1>
+<p>Reinforcement learning is extremely fun but hard topic. I am excited to learn more!</p>
+            <div class="hr"></div>
+            <a href="#" class="go-top">Go Top</a>
+<div class="comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = "leafyleap-2"; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div><footer class="footer">
+    <p>&copy; Mohcine Madkour &ndash;
+        Built with <a href="https://github.com/PurePelicanTheme/pure">Pure Theme</a>
+        for <a href="http://blog.getpelican.com/">Pelican</a>
+    </p>
+</footer>        </div>
+    </div>
+</div>
+    <script>
+        var $top = $('.go-top');
+
+        // Show or hide the sticky footer button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                $top.fadeIn(200);
+            } else {
+                $top.fadeOut(200);
+            }
+        });
+
+        // Animate the scroll to top
+        $top.click(function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 300);
+        })
+
+        // Makes sure that the href="#" attached to the <a> elements
+        // don't scroll you back up the page.
+        $('body').on('click', 'a[href="#"]', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1563 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mohcine Madkour, Big Data Architectures and more">
+
+
+        <title>In-depth EDA and K-Means Clustering // Mohcine Madkour // Big Data Architectures and more</title>
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.3.0/pure-min.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../../../theme/css/pure.css">
+    <link rel="stylesheet" href="../../../../theme/css/pygments.css">
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fitvids/1.0.1/jquery.fitvids.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $(".content").fitVids();
+        });
+    </script>
+</head>
+
+<body>
+<div class="pure-g-r" id="layout">
+    <div class="sidebar sidebar-article pure-u">
+        <header class="header-article">
+            <hgroup>
+                <a href="../../../../author/mohcine-madkour.html" title="See posts by Mohcine Madkour">
+                        <img class="avatar" alt="Mohcine Madkour" src="http://www.gravatar.com/avatar/ae08847efc1a85b710f326eb8ee2e907">
+                </a>
+                <h2 class="article-info">Mohcine Madkour</h2>
+                <small class="about-author"></small>
+                <h5>Published</h5>
+                <p>Fri 11 October 2019</p>
+                <a href="/">&larr;Home</a>
+            </hgroup>
+        </header>
+    </div>
+    <div class="pure-u">
+        <div class="content">
+            <section class="post">
+                <header class="post-header">
+                    <h1>In-depth EDA and K-Means Clustering</h1>
+                        <p class="post-meta">
+                            // under                                 <a class="post-category" href="../../../../tag/machine-learning/">Machine Learning</a>
+                                <a class="post-category" href="../../../../tag/clustering/">Clustering</a>
+                                <a class="post-category" href="../../../../tag/kmeans/">Kmeans</a>
+                        </p>
+                </header>
+            </section>
+            <p>Our world population is expected to grow from 7.3 billion today to 9.7 billion in the year 2050. Finding solutions for feeding the growing world population has become a hot topic for food and agriculture organizations, entrepreneurs and philanthropists. These solutions range from changing the way we grow our food to changing the way we eat. To make things harder, the world's climate is changing and it is both affecting and affected by the way we grow our food – agriculture. This dataset provides an insight on our worldwide food production - focusing on a comparison between food produced for human consumption and feed produced for animals.</p>
+<p>The Food and Agriculture Organization of the United Nations provides free access to food and agriculture data for over 245 countries and territories, from the year 1961 to the most recent update (depends on the dataset). One dataset from the FAO's database is the Food Balance Sheets. It presents a comprehensive picture of the pattern of a country's food supply during a specified reference period, the last time an update was loaded to the FAO database was in 2013. The food balance sheet shows for each food item the sources of supply and its utilization. This chunk of the dataset is focused on two utilizations of each food item available:</p>
+<p>Food - refers to the total amount of the food item available as human food during the reference period.
+Feed - refers to the quantity of the food item available for feeding to the livestock and poultry during the reference period.
+Dataset's attributes:</p>
+<p>Area code - Country name abbreviation
+Area - County name
+Item - Food item
+Element - Food or Feed
+Latitude - geographic coordinate that specifies the north–south position of a point on the Earth's surface
+Longitude - geographic coordinate that specifies the east-west position of a point on the Earth's surface
+Production per year - Amount of food item produced in 1000 tonnes</p>
+<p>This is a simple exploratory notebook that heavily expolits pandas and seaborn</p>
+<p>The dataset and the notebook can be found at this kaggle competition: https://www.kaggle.com/mmadkour/in-depth-eda-and-k-means-clustering</p>
+<div class="highlight"><pre><span></span><span class="c1"># Importing libraries</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="c1"># importing data</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;../input/FAO.csv&quot;</span><span class="p">,</span>  <span class="n">encoding</span> <span class="o">=</span> <span class="s2">&quot;ISO-8859-1&quot;</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">chained_assignment</span> <span class="o">=</span> <span class="bp">None</span>
+</pre></div>
+
+
+<p>Let's see what the data looks like...</p>
+<div class="highlight"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Area Abbreviation</th>
+      <th>Area Code</th>
+      <th>Area</th>
+      <th>Item Code</th>
+      <th>Item</th>
+      <th>Element Code</th>
+      <th>Element</th>
+      <th>Unit</th>
+      <th>latitude</th>
+      <th>longitude</th>
+      <th>...</th>
+      <th>Y2004</th>
+      <th>Y2005</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>AFG</td>
+      <td>2</td>
+      <td>Afghanistan</td>
+      <td>2511</td>
+      <td>Wheat and products</td>
+      <td>5142</td>
+      <td>Food</td>
+      <td>1000 tonnes</td>
+      <td>33.94</td>
+      <td>67.71</td>
+      <td>...</td>
+      <td>3249.0</td>
+      <td>3486.0</td>
+      <td>3704.0</td>
+      <td>4164.0</td>
+      <td>4252.0</td>
+      <td>4538.0</td>
+      <td>4605.0</td>
+      <td>4711.0</td>
+      <td>4810</td>
+      <td>4895</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>AFG</td>
+      <td>2</td>
+      <td>Afghanistan</td>
+      <td>2805</td>
+      <td>Rice (Milled Equivalent)</td>
+      <td>5142</td>
+      <td>Food</td>
+      <td>1000 tonnes</td>
+      <td>33.94</td>
+      <td>67.71</td>
+      <td>...</td>
+      <td>419.0</td>
+      <td>445.0</td>
+      <td>546.0</td>
+      <td>455.0</td>
+      <td>490.0</td>
+      <td>415.0</td>
+      <td>442.0</td>
+      <td>476.0</td>
+      <td>425</td>
+      <td>422</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>AFG</td>
+      <td>2</td>
+      <td>Afghanistan</td>
+      <td>2513</td>
+      <td>Barley and products</td>
+      <td>5521</td>
+      <td>Feed</td>
+      <td>1000 tonnes</td>
+      <td>33.94</td>
+      <td>67.71</td>
+      <td>...</td>
+      <td>58.0</td>
+      <td>236.0</td>
+      <td>262.0</td>
+      <td>263.0</td>
+      <td>230.0</td>
+      <td>379.0</td>
+      <td>315.0</td>
+      <td>203.0</td>
+      <td>367</td>
+      <td>360</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>AFG</td>
+      <td>2</td>
+      <td>Afghanistan</td>
+      <td>2513</td>
+      <td>Barley and products</td>
+      <td>5142</td>
+      <td>Food</td>
+      <td>1000 tonnes</td>
+      <td>33.94</td>
+      <td>67.71</td>
+      <td>...</td>
+      <td>185.0</td>
+      <td>43.0</td>
+      <td>44.0</td>
+      <td>48.0</td>
+      <td>62.0</td>
+      <td>55.0</td>
+      <td>60.0</td>
+      <td>72.0</td>
+      <td>78</td>
+      <td>89</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>AFG</td>
+      <td>2</td>
+      <td>Afghanistan</td>
+      <td>2514</td>
+      <td>Maize and products</td>
+      <td>5521</td>
+      <td>Feed</td>
+      <td>1000 tonnes</td>
+      <td>33.94</td>
+      <td>67.71</td>
+      <td>...</td>
+      <td>120.0</td>
+      <td>208.0</td>
+      <td>233.0</td>
+      <td>249.0</td>
+      <td>247.0</td>
+      <td>195.0</td>
+      <td>178.0</td>
+      <td>191.0</td>
+      <td>200</td>
+      <td>200</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 63 columns</p>
+</div>
+
+<h1>Plot for annual produce of different countries with quantity in y-axis and years in x-axis</h1>
+<div class="highlight"><pre><span></span><span class="n">area_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<span class="n">year_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">10</span><span class="p">:]</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span><span class="mi">12</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="n">area_list</span><span class="p">:</span>
+    <span class="n">yearly_produce</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">yr</span> <span class="ow">in</span> <span class="n">year_list</span><span class="p">:</span>
+        <span class="n">yearly_produce</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">yr</span><span class="p">][</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">ar</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">yearly_produce</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">ar</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">53</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">year_list</span><span class="p">),</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">.</span><span class="mi">102</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;expand&quot;</span><span class="p">,</span> <span class="n">borderaxespad</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;p.png&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_5_0.png"></p>
+<p>Clearly, China, India and US stand out here. So, these are the countries with most food and feed production.</p>
+<p>Now, let's have a close look at their food and feed data</p>
+<h1>Food and feed plot for the whole dataset</h1>
+<div class="highlight"><pre><span></span><span class="n">sns</span><span class="o">.</span><span class="n">factorplot</span><span class="p">(</span><span class="s2">&quot;Element&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_7_0.png"></p>
+<p>So, there is a huge difference in food and feed production. Now, we have obvious assumptions about the following plots after looking at this huge difference.</p>
+<h1>Food and feed plot for the largest producers(India, USA, China)</h1>
+<div class="highlight"><pre><span></span><span class="n">sns</span><span class="o">.</span><span class="n">factorplot</span><span class="p">(</span><span class="s2">&quot;Area&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;India&quot;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;China, mainland&quot;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;United States of America&quot;</span><span class="p">)],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;Element&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=.</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>&amp;lt;seaborn.axisgrid.FacetGrid at 0x7fe39e56a5f8&amp;gt;
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_9_1.png"></p>
+<p>Though, there is a huge difference between feed and food production, these countries' total production and their ranks depend on feed production.</p>
+<p>Now, we create a dataframe with countries as index and their annual produce as columns from 1961 to 2013.</p>
+<div class="highlight"><pre><span></span><span class="n">new_df_dict</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="n">area_list</span><span class="p">:</span>
+    <span class="n">yearly_produce</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">yr</span> <span class="ow">in</span> <span class="n">year_list</span><span class="p">:</span>
+        <span class="n">yearly_produce</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">yr</span><span class="p">][</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Area&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">ar</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">new_df_dict</span><span class="p">[</span><span class="n">ar</span><span class="p">]</span> <span class="o">=</span> <span class="n">yearly_produce</span>
+<span class="n">new_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">new_df_dict</span><span class="p">)</span>
+
+<span class="n">new_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Afghanistan</th>
+      <th>Albania</th>
+      <th>Algeria</th>
+      <th>Angola</th>
+      <th>Antigua and Barbuda</th>
+      <th>Argentina</th>
+      <th>Armenia</th>
+      <th>Australia</th>
+      <th>Austria</th>
+      <th>Azerbaijan</th>
+      <th>...</th>
+      <th>United Republic of Tanzania</th>
+      <th>United States of America</th>
+      <th>Uruguay</th>
+      <th>Uzbekistan</th>
+      <th>Vanuatu</th>
+      <th>Venezuela (Bolivarian Republic of)</th>
+      <th>Viet Nam</th>
+      <th>Yemen</th>
+      <th>Zambia</th>
+      <th>Zimbabwe</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>9481.0</td>
+      <td>1706.0</td>
+      <td>7488.0</td>
+      <td>4834.0</td>
+      <td>92.0</td>
+      <td>43402.0</td>
+      <td>0.0</td>
+      <td>25795.0</td>
+      <td>22542.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>12367.0</td>
+      <td>559347.0</td>
+      <td>4631.0</td>
+      <td>0.0</td>
+      <td>97.0</td>
+      <td>9523.0</td>
+      <td>23856.0</td>
+      <td>2982.0</td>
+      <td>2976.0</td>
+      <td>3260.0</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>9414.0</td>
+      <td>1749.0</td>
+      <td>7235.0</td>
+      <td>4775.0</td>
+      <td>94.0</td>
+      <td>40784.0</td>
+      <td>0.0</td>
+      <td>27618.0</td>
+      <td>22627.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>12810.0</td>
+      <td>556319.0</td>
+      <td>4448.0</td>
+      <td>0.0</td>
+      <td>101.0</td>
+      <td>9369.0</td>
+      <td>25220.0</td>
+      <td>3038.0</td>
+      <td>3057.0</td>
+      <td>3503.0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>9194.0</td>
+      <td>1767.0</td>
+      <td>6861.0</td>
+      <td>5240.0</td>
+      <td>105.0</td>
+      <td>40219.0</td>
+      <td>0.0</td>
+      <td>28902.0</td>
+      <td>23637.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>13109.0</td>
+      <td>552630.0</td>
+      <td>4682.0</td>
+      <td>0.0</td>
+      <td>103.0</td>
+      <td>9788.0</td>
+      <td>26053.0</td>
+      <td>3147.0</td>
+      <td>3069.0</td>
+      <td>3479.0</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>10170.0</td>
+      <td>1889.0</td>
+      <td>7255.0</td>
+      <td>5286.0</td>
+      <td>95.0</td>
+      <td>41638.0</td>
+      <td>0.0</td>
+      <td>29107.0</td>
+      <td>24099.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>12965.0</td>
+      <td>555677.0</td>
+      <td>4723.0</td>
+      <td>0.0</td>
+      <td>102.0</td>
+      <td>10539.0</td>
+      <td>26377.0</td>
+      <td>3224.0</td>
+      <td>3121.0</td>
+      <td>3738.0</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>10473.0</td>
+      <td>1884.0</td>
+      <td>7509.0</td>
+      <td>5527.0</td>
+      <td>84.0</td>
+      <td>44936.0</td>
+      <td>0.0</td>
+      <td>28961.0</td>
+      <td>22664.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>13742.0</td>
+      <td>589288.0</td>
+      <td>4581.0</td>
+      <td>0.0</td>
+      <td>107.0</td>
+      <td>10641.0</td>
+      <td>26961.0</td>
+      <td>3328.0</td>
+      <td>3236.0</td>
+      <td>3940.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 174 columns</p>
+</div>
+
+<p>Now, this is not perfect so we transpose this dataframe and add column names.</p>
+<div class="highlight"><pre><span></span><span class="n">new_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">new_df</span><span class="p">)</span>
+<span class="n">new_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">year_list</span>
+
+<span class="n">new_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Y1961</th>
+      <th>Y1962</th>
+      <th>Y1963</th>
+      <th>Y1964</th>
+      <th>Y1965</th>
+      <th>Y1966</th>
+      <th>Y1967</th>
+      <th>Y1968</th>
+      <th>Y1969</th>
+      <th>Y1970</th>
+      <th>...</th>
+      <th>Y2004</th>
+      <th>Y2005</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Afghanistan</td>
+      <td>9481.0</td>
+      <td>9414.0</td>
+      <td>9194.0</td>
+      <td>10170.0</td>
+      <td>10473.0</td>
+      <td>10169.0</td>
+      <td>11289.0</td>
+      <td>11508.0</td>
+      <td>11815.0</td>
+      <td>10454.0</td>
+      <td>...</td>
+      <td>16542.0</td>
+      <td>17658.0</td>
+      <td>18317.0</td>
+      <td>19248.0</td>
+      <td>19381.0</td>
+      <td>20661.0</td>
+      <td>21030.0</td>
+      <td>21100.0</td>
+      <td>22706.0</td>
+      <td>23007.0</td>
+    </tr>
+    <tr>
+      <td>Albania</td>
+      <td>1706.0</td>
+      <td>1749.0</td>
+      <td>1767.0</td>
+      <td>1889.0</td>
+      <td>1884.0</td>
+      <td>1995.0</td>
+      <td>2046.0</td>
+      <td>2169.0</td>
+      <td>2230.0</td>
+      <td>2395.0</td>
+      <td>...</td>
+      <td>6637.0</td>
+      <td>6719.0</td>
+      <td>6911.0</td>
+      <td>6744.0</td>
+      <td>7168.0</td>
+      <td>7316.0</td>
+      <td>7907.0</td>
+      <td>8114.0</td>
+      <td>8221.0</td>
+      <td>8271.0</td>
+    </tr>
+    <tr>
+      <td>Algeria</td>
+      <td>7488.0</td>
+      <td>7235.0</td>
+      <td>6861.0</td>
+      <td>7255.0</td>
+      <td>7509.0</td>
+      <td>7536.0</td>
+      <td>7986.0</td>
+      <td>8839.0</td>
+      <td>9003.0</td>
+      <td>9355.0</td>
+      <td>...</td>
+      <td>48619.0</td>
+      <td>49562.0</td>
+      <td>51067.0</td>
+      <td>49933.0</td>
+      <td>50916.0</td>
+      <td>57505.0</td>
+      <td>60071.0</td>
+      <td>65852.0</td>
+      <td>69365.0</td>
+      <td>72161.0</td>
+    </tr>
+    <tr>
+      <td>Angola</td>
+      <td>4834.0</td>
+      <td>4775.0</td>
+      <td>5240.0</td>
+      <td>5286.0</td>
+      <td>5527.0</td>
+      <td>5677.0</td>
+      <td>5833.0</td>
+      <td>5685.0</td>
+      <td>6219.0</td>
+      <td>6460.0</td>
+      <td>...</td>
+      <td>25541.0</td>
+      <td>26696.0</td>
+      <td>28247.0</td>
+      <td>29877.0</td>
+      <td>32053.0</td>
+      <td>36985.0</td>
+      <td>38400.0</td>
+      <td>40573.0</td>
+      <td>38064.0</td>
+      <td>48639.0</td>
+    </tr>
+    <tr>
+      <td>Antigua and Barbuda</td>
+      <td>92.0</td>
+      <td>94.0</td>
+      <td>105.0</td>
+      <td>95.0</td>
+      <td>84.0</td>
+      <td>73.0</td>
+      <td>64.0</td>
+      <td>59.0</td>
+      <td>68.0</td>
+      <td>77.0</td>
+      <td>...</td>
+      <td>92.0</td>
+      <td>115.0</td>
+      <td>110.0</td>
+      <td>122.0</td>
+      <td>115.0</td>
+      <td>114.0</td>
+      <td>115.0</td>
+      <td>118.0</td>
+      <td>113.0</td>
+      <td>119.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 53 columns</p>
+</div>
+
+<p>Perfect! Now, we will do some feature engineering.</p>
+<h1>First, a new column which indicates mean produce of each state over the given years. Second, a ranking column which ranks countries on the basis of mean produce.</h1>
+<div class="highlight"><pre><span></span><span class="n">mean_produce</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">174</span><span class="p">):</span>
+    <span class="n">mean_produce</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="n">new_df</span><span class="p">[</span><span class="s1">&#39;Mean_Produce&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_produce</span>
+
+<span class="n">new_df</span><span class="p">[</span><span class="s1">&#39;Rank&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_df</span><span class="p">[</span><span class="s1">&#39;Mean_Produce&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+<span class="n">new_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Y1961</th>
+      <th>Y1962</th>
+      <th>Y1963</th>
+      <th>Y1964</th>
+      <th>Y1965</th>
+      <th>Y1966</th>
+      <th>Y1967</th>
+      <th>Y1968</th>
+      <th>Y1969</th>
+      <th>Y1970</th>
+      <th>...</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+      <th>Mean_Produce</th>
+      <th>Rank</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Afghanistan</td>
+      <td>9481.0</td>
+      <td>9414.0</td>
+      <td>9194.0</td>
+      <td>10170.0</td>
+      <td>10473.0</td>
+      <td>10169.0</td>
+      <td>11289.0</td>
+      <td>11508.0</td>
+      <td>11815.0</td>
+      <td>10454.0</td>
+      <td>...</td>
+      <td>18317.0</td>
+      <td>19248.0</td>
+      <td>19381.0</td>
+      <td>20661.0</td>
+      <td>21030.0</td>
+      <td>21100.0</td>
+      <td>22706.0</td>
+      <td>23007.0</td>
+      <td>13003.056604</td>
+      <td>69.0</td>
+    </tr>
+    <tr>
+      <td>Albania</td>
+      <td>1706.0</td>
+      <td>1749.0</td>
+      <td>1767.0</td>
+      <td>1889.0</td>
+      <td>1884.0</td>
+      <td>1995.0</td>
+      <td>2046.0</td>
+      <td>2169.0</td>
+      <td>2230.0</td>
+      <td>2395.0</td>
+      <td>...</td>
+      <td>6911.0</td>
+      <td>6744.0</td>
+      <td>7168.0</td>
+      <td>7316.0</td>
+      <td>7907.0</td>
+      <td>8114.0</td>
+      <td>8221.0</td>
+      <td>8271.0</td>
+      <td>4475.509434</td>
+      <td>104.0</td>
+    </tr>
+    <tr>
+      <td>Algeria</td>
+      <td>7488.0</td>
+      <td>7235.0</td>
+      <td>6861.0</td>
+      <td>7255.0</td>
+      <td>7509.0</td>
+      <td>7536.0</td>
+      <td>7986.0</td>
+      <td>8839.0</td>
+      <td>9003.0</td>
+      <td>9355.0</td>
+      <td>...</td>
+      <td>51067.0</td>
+      <td>49933.0</td>
+      <td>50916.0</td>
+      <td>57505.0</td>
+      <td>60071.0</td>
+      <td>65852.0</td>
+      <td>69365.0</td>
+      <td>72161.0</td>
+      <td>28879.490566</td>
+      <td>38.0</td>
+    </tr>
+    <tr>
+      <td>Angola</td>
+      <td>4834.0</td>
+      <td>4775.0</td>
+      <td>5240.0</td>
+      <td>5286.0</td>
+      <td>5527.0</td>
+      <td>5677.0</td>
+      <td>5833.0</td>
+      <td>5685.0</td>
+      <td>6219.0</td>
+      <td>6460.0</td>
+      <td>...</td>
+      <td>28247.0</td>
+      <td>29877.0</td>
+      <td>32053.0</td>
+      <td>36985.0</td>
+      <td>38400.0</td>
+      <td>40573.0</td>
+      <td>38064.0</td>
+      <td>48639.0</td>
+      <td>13321.056604</td>
+      <td>68.0</td>
+    </tr>
+    <tr>
+      <td>Antigua and Barbuda</td>
+      <td>92.0</td>
+      <td>94.0</td>
+      <td>105.0</td>
+      <td>95.0</td>
+      <td>84.0</td>
+      <td>73.0</td>
+      <td>64.0</td>
+      <td>59.0</td>
+      <td>68.0</td>
+      <td>77.0</td>
+      <td>...</td>
+      <td>110.0</td>
+      <td>122.0</td>
+      <td>115.0</td>
+      <td>114.0</td>
+      <td>115.0</td>
+      <td>118.0</td>
+      <td>113.0</td>
+      <td>119.0</td>
+      <td>83.886792</td>
+      <td>172.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 55 columns</p>
+</div>
+
+<p>Now, we create another dataframe with items and their total production each year from 1961 to 2013</p>
+<div class="highlight"><pre><span></span><span class="n">item_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+<span class="n">item_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+<span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Item_Name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item_list</span>
+
+<span class="k">for</span> <span class="n">yr</span> <span class="ow">in</span> <span class="n">year_list</span><span class="p">:</span>
+    <span class="n">item_produce</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">item_list</span><span class="p">:</span>
+        <span class="n">item_produce</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">yr</span><span class="p">][</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">it</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">item_df</span><span class="p">[</span><span class="n">yr</span><span class="p">]</span> <span class="o">=</span> <span class="n">item_produce</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="n">item_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Item_Name</th>
+      <th>Y1961</th>
+      <th>Y1962</th>
+      <th>Y1963</th>
+      <th>Y1964</th>
+      <th>Y1965</th>
+      <th>Y1966</th>
+      <th>Y1967</th>
+      <th>Y1968</th>
+      <th>Y1969</th>
+      <th>...</th>
+      <th>Y2004</th>
+      <th>Y2005</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>Wheat and products</td>
+      <td>138829.0</td>
+      <td>144643.0</td>
+      <td>147325.0</td>
+      <td>156273.0</td>
+      <td>168822.0</td>
+      <td>169832.0</td>
+      <td>171469.0</td>
+      <td>179530.0</td>
+      <td>189658.0</td>
+      <td>...</td>
+      <td>527394.0</td>
+      <td>532263.0</td>
+      <td>537279.0</td>
+      <td>529271.0</td>
+      <td>562239.0</td>
+      <td>557245.0</td>
+      <td>549926.0</td>
+      <td>578179.0</td>
+      <td>576597</td>
+      <td>587492</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Rice (Milled Equivalent)</td>
+      <td>122700.0</td>
+      <td>131842.0</td>
+      <td>139507.0</td>
+      <td>148304.0</td>
+      <td>150056.0</td>
+      <td>155583.0</td>
+      <td>158587.0</td>
+      <td>164614.0</td>
+      <td>167922.0</td>
+      <td>...</td>
+      <td>361107.0</td>
+      <td>366025.0</td>
+      <td>372629.0</td>
+      <td>378698.0</td>
+      <td>389708.0</td>
+      <td>394221.0</td>
+      <td>398559.0</td>
+      <td>404152.0</td>
+      <td>406787</td>
+      <td>410880</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Barley and products</td>
+      <td>46180.0</td>
+      <td>48915.0</td>
+      <td>51642.0</td>
+      <td>54184.0</td>
+      <td>54945.0</td>
+      <td>55463.0</td>
+      <td>56424.0</td>
+      <td>60455.0</td>
+      <td>65501.0</td>
+      <td>...</td>
+      <td>102055.0</td>
+      <td>97185.0</td>
+      <td>100981.0</td>
+      <td>93310.0</td>
+      <td>98209.0</td>
+      <td>99135.0</td>
+      <td>92563.0</td>
+      <td>92570.0</td>
+      <td>88766</td>
+      <td>99452</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Maize and products</td>
+      <td>168039.0</td>
+      <td>168305.0</td>
+      <td>172905.0</td>
+      <td>175468.0</td>
+      <td>190304.0</td>
+      <td>200860.0</td>
+      <td>213050.0</td>
+      <td>215613.0</td>
+      <td>221953.0</td>
+      <td>...</td>
+      <td>545024.0</td>
+      <td>549036.0</td>
+      <td>543280.0</td>
+      <td>573892.0</td>
+      <td>592231.0</td>
+      <td>557940.0</td>
+      <td>584337.0</td>
+      <td>603297.0</td>
+      <td>608730</td>
+      <td>671300</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Millet and products</td>
+      <td>19075.0</td>
+      <td>19019.0</td>
+      <td>19740.0</td>
+      <td>20353.0</td>
+      <td>18377.0</td>
+      <td>20860.0</td>
+      <td>22997.0</td>
+      <td>21785.0</td>
+      <td>23966.0</td>
+      <td>...</td>
+      <td>25789.0</td>
+      <td>25496.0</td>
+      <td>25997.0</td>
+      <td>26750.0</td>
+      <td>26373.0</td>
+      <td>24575.0</td>
+      <td>27039.0</td>
+      <td>25740.0</td>
+      <td>26105</td>
+      <td>26346</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 54 columns</p>
+</div>
+
+<h1>Some more feature engineering</h1>
+<p>This time, we will use the new features to get some good conclusions.</p>
+<h1>1. Total amount of item produced from 1961 to 2013</h1>
+<h1>2. Providing a rank to the items to know the most produced item</h1>
+<div class="highlight"><pre><span></span><span class="n">sum_col</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">115</span><span class="p">):</span>
+    <span class="n">sum_col</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Sum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sum_col</span>
+<span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Production_Rank&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Sum&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+<span class="n">item_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Item_Name</th>
+      <th>Y1961</th>
+      <th>Y1962</th>
+      <th>Y1963</th>
+      <th>Y1964</th>
+      <th>Y1965</th>
+      <th>Y1966</th>
+      <th>Y1967</th>
+      <th>Y1968</th>
+      <th>Y1969</th>
+      <th>...</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+      <th>Sum</th>
+      <th>Production_Rank</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>Wheat and products</td>
+      <td>138829.0</td>
+      <td>144643.0</td>
+      <td>147325.0</td>
+      <td>156273.0</td>
+      <td>168822.0</td>
+      <td>169832.0</td>
+      <td>171469.0</td>
+      <td>179530.0</td>
+      <td>189658.0</td>
+      <td>...</td>
+      <td>537279.0</td>
+      <td>529271.0</td>
+      <td>562239.0</td>
+      <td>557245.0</td>
+      <td>549926.0</td>
+      <td>578179.0</td>
+      <td>576597</td>
+      <td>587492</td>
+      <td>19194671.0</td>
+      <td>6.0</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Rice (Milled Equivalent)</td>
+      <td>122700.0</td>
+      <td>131842.0</td>
+      <td>139507.0</td>
+      <td>148304.0</td>
+      <td>150056.0</td>
+      <td>155583.0</td>
+      <td>158587.0</td>
+      <td>164614.0</td>
+      <td>167922.0</td>
+      <td>...</td>
+      <td>372629.0</td>
+      <td>378698.0</td>
+      <td>389708.0</td>
+      <td>394221.0</td>
+      <td>398559.0</td>
+      <td>404152.0</td>
+      <td>406787</td>
+      <td>410880</td>
+      <td>14475448.0</td>
+      <td>8.0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Barley and products</td>
+      <td>46180.0</td>
+      <td>48915.0</td>
+      <td>51642.0</td>
+      <td>54184.0</td>
+      <td>54945.0</td>
+      <td>55463.0</td>
+      <td>56424.0</td>
+      <td>60455.0</td>
+      <td>65501.0</td>
+      <td>...</td>
+      <td>100981.0</td>
+      <td>93310.0</td>
+      <td>98209.0</td>
+      <td>99135.0</td>
+      <td>92563.0</td>
+      <td>92570.0</td>
+      <td>88766</td>
+      <td>99452</td>
+      <td>4442742.0</td>
+      <td>20.0</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Maize and products</td>
+      <td>168039.0</td>
+      <td>168305.0</td>
+      <td>172905.0</td>
+      <td>175468.0</td>
+      <td>190304.0</td>
+      <td>200860.0</td>
+      <td>213050.0</td>
+      <td>215613.0</td>
+      <td>221953.0</td>
+      <td>...</td>
+      <td>543280.0</td>
+      <td>573892.0</td>
+      <td>592231.0</td>
+      <td>557940.0</td>
+      <td>584337.0</td>
+      <td>603297.0</td>
+      <td>608730</td>
+      <td>671300</td>
+      <td>19960640.0</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Millet and products</td>
+      <td>19075.0</td>
+      <td>19019.0</td>
+      <td>19740.0</td>
+      <td>20353.0</td>
+      <td>18377.0</td>
+      <td>20860.0</td>
+      <td>22997.0</td>
+      <td>21785.0</td>
+      <td>23966.0</td>
+      <td>...</td>
+      <td>25997.0</td>
+      <td>26750.0</td>
+      <td>26373.0</td>
+      <td>24575.0</td>
+      <td>27039.0</td>
+      <td>25740.0</td>
+      <td>26105</td>
+      <td>26346</td>
+      <td>1225400.0</td>
+      <td>38.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 56 columns</p>
+</div>
+
+<h1>Now, we find the most produced food items in the last half-century</h1>
+<div class="highlight"><pre><span></span><span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Item_Name&#39;</span><span class="p">][</span><span class="n">item_df</span><span class="p">[</span><span class="s1">&#39;Production_Rank&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">11.0</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>56    Cereals - Excluding Beer
+65     Fruits - Excluding Wine
+3           Maize and products
+53     Milk - Excluding Butter
+6        Potatoes and products
+1     Rice (Milled Equivalent)
+57               Starchy Roots
+64                  Vegetables
+27           Vegetables, Other
+0           Wheat and products
+Name: Item_Name, dtype: object
+</pre></div>
+
+
+<p>So, cereals, fruits and maize are the most produced items in the last 50 years</p>
+<h1>Food and feed plot for most produced items</h1>
+<div class="highlight"><pre><span></span><span class="n">sns</span><span class="o">.</span><span class="n">factorplot</span><span class="p">(</span><span class="s2">&quot;Item&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Wheat and products&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Rice (Milled Equivalent)&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Maize and products&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Potatoes and products&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Vegetables, Other&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Milk - Excluding Butter&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Cereals - Excluding Beer&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Starchy Roots&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Vegetables&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Item&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Fruits - Excluding Wine&#39;</span><span class="p">)],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;Element&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=.</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_25_0.png"></p>
+<h1>Now, we plot a heatmap of correlation of produce in difference years</h1>
+<div class="highlight"><pre><span></span><span class="n">year_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">10</span><span class="p">:]</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">year_df</span><span class="o">.</span><span class="n">corr</span><span class="p">(),</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>&amp;lt;matplotlib.axes._subplots.AxesSubplot at 0x7fe3a58530b8&amp;gt;
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_27_1.png"></p>
+<p>So, we gather that a given year's production is more similar to its immediate previous and immediate following years.</p>
+<div class="highlight"><pre><span></span><span class="n">f</span><span class="p">,</span> <span class="p">((</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">),</span> <span class="p">(</span><span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">))</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="s1">&#39;col&#39;</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="s1">&#39;row&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Y1968&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Y1961&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Y1968&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Y1963&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Y1968&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Y1986&#39;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Y1968&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Y2013&#39;</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">jointplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;Y1968&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Y1961&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;reg&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">jointplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;Y1968&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Y1963&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;reg&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">jointplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;Y1968&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Y1986&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;reg&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax3</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">jointplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;Y1968&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Y2013&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;reg&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_29_0.png"></p>
+<h1>Heatmap of production of food items over years</h1>
+<p>This will detect the items whose production has drastically increased over the years</p>
+<div class="highlight"><pre><span></span><span class="n">new_item_df</span> <span class="o">=</span> <span class="n">item_df</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;Item_Name&quot;</span><span class="p">,</span><span class="s2">&quot;Sum&quot;</span><span class="p">,</span><span class="s2">&quot;Production_Rank&quot;</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">new_item_df</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">item_df</span><span class="o">.</span><span class="n">Item_Name</span><span class="o">.</span><span class="n">values</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="/images/output_31_00.png"></p>
+<p>There is considerable growth in production of Palmkernel oil, Meat/Aquatic animals, ricebran oil, cottonseed, seafood, offals, roots, poultry meat, mutton, bear, cocoa, coffee and soyabean oil.
+There has been exceptional growth in production of onions, cream, sugar crops, treenuts, butter/ghee and to some extent starchy roots.</p>
+<p>Now, we look at clustering.</p>
+<h1>What is clustering?</h1>
+<p>Cluster analysis or clustering is the task of grouping a set of objects in such a way that objects in the same group (called a cluster) are more similar (in some sense) to each other than to those in other groups (clusters). It is a main task of exploratory data mining, and a common technique for statistical data analysis, used in many fields, including machine learning, pattern recognition, image analysis, information retrieval, bioinformatics, data compression, and computer graphics.</p>
+<h1>Today, we will form clusters to classify countries based on productivity scale</h1>
+<p>For this, we will use k-means clustering algorithm.</p>
+<h1>K-means clustering</h1>
+<p>(Source <a href="https://en.wikipedia.org/wiki/K-means_clustering#Standard_algorithm">Wikipedia</a> )
+<img alt="http://gdurl.com/5BbP" src="http://gdurl.com/5BbP"></p>
+<p>This is the data we will use.</p>
+<div class="highlight"><pre><span></span><span class="n">new_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Y1961</th>
+      <th>Y1962</th>
+      <th>Y1963</th>
+      <th>Y1964</th>
+      <th>Y1965</th>
+      <th>Y1966</th>
+      <th>Y1967</th>
+      <th>Y1968</th>
+      <th>Y1969</th>
+      <th>Y1970</th>
+      <th>...</th>
+      <th>Y2006</th>
+      <th>Y2007</th>
+      <th>Y2008</th>
+      <th>Y2009</th>
+      <th>Y2010</th>
+      <th>Y2011</th>
+      <th>Y2012</th>
+      <th>Y2013</th>
+      <th>Mean_Produce</th>
+      <th>Rank</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Afghanistan</td>
+      <td>9481.0</td>
+      <td>9414.0</td>
+      <td>9194.0</td>
+      <td>10170.0</td>
+      <td>10473.0</td>
+      <td>10169.0</td>
+      <td>11289.0</td>
+      <td>11508.0</td>
+      <td>11815.0</td>
+      <td>10454.0</td>
+      <td>...</td>
+      <td>18317.0</td>
+      <td>19248.0</td>
+      <td>19381.0</td>
+      <td>20661.0</td>
+      <td>21030.0</td>
+      <td>21100.0</td>
+      <td>22706.0</td>
+      <td>23007.0</td>
+      <td>13003.056604</td>
+      <td>69.0</td>
+    </tr>
+    <tr>
+      <td>Albania</td>
+      <td>1706.0</td>
+      <td>1749.0</td>
+      <td>1767.0</td>
+      <td>1889.0</td>
+      <td>1884.0</td>
+      <td>1995.0</td>
+      <td>2046.0</td>
+      <td>2169.0</td>
+      <td>2230.0</td>
+      <td>2395.0</td>
+      <td>...</td>
+      <td>6911.0</td>
+      <td>6744.0</td>
+      <td>7168.0</td>
+      <td>7316.0</td>
+      <td>7907.0</td>
+      <td>8114.0</td>
+      <td>8221.0</td>
+      <td>8271.0</td>
+      <td>4475.509434</td>
+      <td>104.0</td>
+    </tr>
+    <tr>
+      <td>Algeria</td>
+      <td>7488.0</td>
+      <td>7235.0</td>
+      <td>6861.0</td>
+      <td>7255.0</td>
+      <td>7509.0</td>
+      <td>7536.0</td>
+      <td>7986.0</td>
+      <td>8839.0</td>
+      <td>9003.0</td>
+      <td>9355.0</td>
+      <td>...</td>
+      <td>51067.0</td>
+      <td>49933.0</td>
+      <td>50916.0</td>
+      <td>57505.0</td>
+      <td>60071.0</td>
+      <td>65852.0</td>
+      <td>69365.0</td>
+      <td>72161.0</td>
+      <td>28879.490566</td>
+      <td>38.0</td>
+    </tr>
+    <tr>
+      <td>Angola</td>
+      <td>4834.0</td>
+      <td>4775.0</td>
+      <td>5240.0</td>
+      <td>5286.0</td>
+      <td>5527.0</td>
+      <td>5677.0</td>
+      <td>5833.0</td>
+      <td>5685.0</td>
+      <td>6219.0</td>
+      <td>6460.0</td>
+      <td>...</td>
+      <td>28247.0</td>
+      <td>29877.0</td>
+      <td>32053.0</td>
+      <td>36985.0</td>
+      <td>38400.0</td>
+      <td>40573.0</td>
+      <td>38064.0</td>
+      <td>48639.0</td>
+      <td>13321.056604</td>
+      <td>68.0</td>
+    </tr>
+    <tr>
+      <td>Antigua and Barbuda</td>
+      <td>92.0</td>
+      <td>94.0</td>
+      <td>105.0</td>
+      <td>95.0</td>
+      <td>84.0</td>
+      <td>73.0</td>
+      <td>64.0</td>
+      <td>59.0</td>
+      <td>68.0</td>
+      <td>77.0</td>
+      <td>...</td>
+      <td>110.0</td>
+      <td>122.0</td>
+      <td>115.0</td>
+      <td>114.0</td>
+      <td>115.0</td>
+      <td>118.0</td>
+      <td>113.0</td>
+      <td>119.0</td>
+      <td>83.886792</td>
+      <td>172.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 55 columns</p>
+</div>
+
+<div class="highlight"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">new_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">convert_objects</span><span class="p">(</span><span class="n">convert_numeric</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">X</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">year_list</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span>---------------------------------------------------------------------------
+
+AttributeError                            Traceback (most recent call last)
+
+&amp;lt;ipython-input-23-ebc6771564a7&amp;gt; in &amp;lt;module&amp;gt;
+      2 
+      3 X = pd.DataFrame(X)
+----&amp;gt; 4 X = X.convert_objects(convert_numeric=True)
+      5 X.columns = year_list
+
+
+/opt/conda/lib/python3.6/site-packages/pandas/core/generic.py in __getattr__(self, name)
+   5177             if self._info_axis._can_hold_identifiers_and_holds_name(name):
+   5178                 return self[name]
+-&amp;gt; 5179             return object.__getattribute__(self, name)
+   5180 
+   5181     def __setattr__(self, name, value):
+
+
+AttributeError: &#39;DataFrame&#39; object has no attribute &#39;convert_objects&#39;
+</pre></div>
+
+
+<h1>Elbow method to select number of clusters</h1>
+<p>This method looks at the percentage of variance explained as a function of the number of clusters: One should choose a number of clusters so that adding another cluster doesn't give much better modeling of the data. More precisely, if one plots the percentage of variance explained by the clusters against the number of clusters, the first clusters will add much information (explain a lot of variance), but at some point the marginal gain will drop, giving an angle in the graph. The number of clusters is chosen at this point, hence the "elbow criterion". This "elbow" cannot always be unambiguously identified. Percentage of variance explained is the ratio of the between-group variance to the total variance, also known as an F-test. A slight variation of this method plots the curvature of the within group variance.</p>
+<h1>Basically, number of clusters = the x-axis value of the point that is the corner of the "elbow"(the plot looks often looks like an elbow)</h1>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
+<span class="n">wcss</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">11</span><span class="p">):</span>
+    <span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">i</span><span class="p">,</span><span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span><span class="n">n_init</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">wcss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kmeans</span><span class="o">.</span><span class="n">inertia_</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">11</span><span class="p">),</span><span class="n">wcss</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;The Elbow Method&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Number of clusters&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;WCSS&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p>As the elbow corner coincides with x=2, we will have to form <strong>2 clusters</strong>. Personally, I would have liked to select 3 to 4 clusters. But trust me, only selecting 2 clusters can lead to best results.
+Now, we apply k-means algorithm.</p>
+<div class="highlight"><pre><span></span><span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span><span class="n">n_init</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> 
+<span class="n">y_kmeans</span> <span class="o">=</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Now, let's visualize the results.</p>
+<div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">y_kmeans</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">y_kmeans</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">c</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Others&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">y_kmeans</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">y_kmeans</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">s</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">c</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;China(mainland),USA,India&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">kmeans</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">kmeans</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">s</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span><span class="n">c</span><span class="o">=</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Centroids&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Clusters of countries by Productivity&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p>So, the blue cluster represents China(Mainland), USA and India while the red cluster represents all the other countries.
+This result was highly probable. Just take a look at the plot of cell 3 above. See how China, USA and India stand out. That has been observed here in clustering too.</p>
+<p>You should try this algorithm for 3 or 4 clusters. Looking at the distribution, you will realise why 2 clusters is the best choice for the given data</p>
+<p>This is not the end! More is yet to come.</p>
+            <div class="hr"></div>
+            <a href="#" class="go-top">Go Top</a>
+<div class="comments">
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = "leafyleap-2"; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div><footer class="footer">
+    <p>&copy; Mohcine Madkour &ndash;
+        Built with <a href="https://github.com/PurePelicanTheme/pure">Pure Theme</a>
+        for <a href="http://blog.getpelican.com/">Pelican</a>
+    </p>
+</footer>        </div>
+    </div>
+</div>
+    <script>
+        var $top = $('.go-top');
+
+        // Show or hide the sticky footer button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 200) {
+                $top.fadeIn(200);
+            } else {
+                $top.fadeOut(200);
+            }
+        });
+
+        // Animate the scroll to top
+        $top.click(function(event) {
+            event.preventDefault();
+            $('html, body').animate({scrollTop: 0}, 300);
+        })
+
+        // Makes sure that the href="#" attached to the <a> elements
+        // don't scroll you back up the page.
+        $('body').on('click', 'a[href="#"]', function(event) {
+            event.preventDefault();
+        });
+    </script>
+</body>
+</html>
