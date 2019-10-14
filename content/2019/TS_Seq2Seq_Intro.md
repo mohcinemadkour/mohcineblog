@@ -1,8 +1,13 @@
 title: An Introduction to High-Dimensional Time Series Forecasting with Neural Networks
 Date: 2019-10-14 13:01
 Category: Time Series Forecasting, Neural Networks, CNN, RNN
+<<<<<<< HEAD
 Tags: Time Series Forecasting, Neural Networks, RNN
 Slug: Time Series Forecasting, Neural Networks, RNNIntro
+=======
+Tags: Time Series Forecasting, Neural Networks, CNN, RNN
+Slug: Time Series Forecasting, Neural Networks, CNN, RNN
+>>>>>>> a9c02b6cdf97026999aff4f7edad33aec114ea58
 Author: Mohcine Madkour
 Email:mohcine.madkour@gmail.com
 

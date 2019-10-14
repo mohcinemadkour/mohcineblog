@@ -2,7 +2,11 @@ title: High-Dimensional Time Series Forecasting with Convolutional Neural Networ
 Date: 2019-10-14 13:01
 Category: Time Series Forecasting, Convolutional Neural Networks, CNN, RNN
 Tags: Time Series Forecasting, Convolutional Neural Networks, CNN, RNN
+<<<<<<< HEAD
 Slug: Time Series Forecasting, Convolutional Neural Networks, CNN, RNN, full Exog
+=======
+Slug: Time Series Forecasting, Convolutional Neural Networks, CNN, RNN
+>>>>>>> a9c02b6cdf97026999aff4f7edad33aec114ea58
 Author: Mohcine Madkour
 Email:mohcine.madkour@gmail.com
 
