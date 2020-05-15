@@ -13,8 +13,10 @@ except ImportError:
     from .nb_TSUtilities import *
     from .nb_TSDatasets import *
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-class TimeSeriesItem(ItemBase):
+
+class TSItem(ItemBase):
     "`ItemBase` suitable for time series"
 
     def __init__(self, item, *args, **kwargs):
@@ -32,21 +34,23 @@ class TimeSeriesItem(ItemBase):
     def clone(self):
         return self.__class__(self.data.clone())
 
-    def apply_tfms(self, tfms, **kwargs):
+    def apply_tfms(self, tfms=None, **kwargs):
+        if tfms is None: return self
         x = self.clone()
-        for tfm in tfms:
-            x.data = tfm(x.data)
+        for tfm in tfms: x.data = tfm(x.data)
         return x
 
     def reconstruct(self, item):
-        return TimeSeriesItem(item)
+        return TSItem(item)
 
     def show(self, ax=None, title=None, **kwargs):
+        x = self.clone()
         if ax is None:
-            plt.plot(self.data.transpose_(0, 1))
+            plt.plot(x.data.transpose_(0, 1))
+            plt.title(title)
             plt.show()
         else:
-            ax.plot(self.data.transpose_(0, 1))
+            ax.plot(x.data.transpose_(0, 1))
             ax.title.set_text(title)
             ax.tick_params(
                 axis='both',
@@ -59,84 +63,141 @@ class TimeSeriesItem(ItemBase):
                 labelleft='off')
             return ax
 
+class TimeSeriesItem(TSItem): pass
 
-def get_class_weights(target):
-    if isinstance(target, np.ndarray): target = torch.Tensor(target).to(dtype=torch.int64)
-    # Compute samples weight (each sample should get its own weight)
-    class_sample_count = torch.tensor(
-        [(target == t).sum() for t in torch.unique(target, sorted=True)])
-    weights = 1. / class_sample_count.float()
-    return (weights / weights.sum()).to(device)
-
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class TSDataBunch(DataBunch):
 
-
-    def get_stats(self):
-        train = To3dArray(self.label_list.train.items)
-        if self.type == 'normalize':
-            if self.subtype == 'all_samples':
-                train_min = train.min(keepdims=True)
-                train_max = train.max(keepdims=True)
-            elif self.subtype == 'per_sample':
-                train_min = train.min(axis=(1, 2), keepdims=True)
-                train_max = train.max(axis=(1, 2), keepdims=True)
-            elif self.subtype == 'per_channel':
-                train_min = train.min(axis=(0, 2), keepdims=True)
-                train_max = train.max(axis=(0, 2), keepdims=True)
-            else:
-                print('***** Please, select a valid  scaling_subtype *****')
-                return
-            self.min, self.max = train_min, train_max
+    def scale(self, scale_type='standardize', scale_by_channel=False, scale_by_sample=False,
+          scale_range=(-1, 1)) -> None:
+        self.scale_type = scale_type
+        self.scale_by_channel = scale_by_channel
+        self.scale_by_sample = scale_by_sample
+        self.scale_range = scale_range
+        if scale_type is None:
+            self.stats = None
             return self
+        assert scale_type in ['normalize', 'standardize', 'robustscale'], print('Select a correct type', scale_type)
 
-        elif self.type == 'standardize':
-            if self.subtype == 'all_samples':
-                train_mean = train.mean(keepdims=True)
-                train_std = train.std(keepdims=True)
-            elif self.subtype == 'per_sample':
-                train_mean = train.mean(axis=(1, 2), keepdims=True)
-                train_std = train.std(axis=(1, 2), keepdims=True)
-            elif self.subtype == 'per_channel':
-                train_mean = train.mean(axis=(0, 2), keepdims=True)
-                train_std = train.std(axis=(0, 2), keepdims=True)
-            else:
-                print('***** Please, select a valid  scaling_subtype *****')
-                return
-            self.mean, self.std = train_mean, train_std
-            return self
+        train = self.train_ds.x.items.astype(float)
+        valid = self.valid_ds.x.items.astype(float)
+        if self.test_ds is not None: test = self.test_ds.x.items.astype(float)
+
+        if scale_by_channel and scale_by_sample: axis = -1 # mean
+        elif scale_by_channel: axis = (0, 2) # mean for the entire dataset by channel
+        elif scale_by_sample: axis = (1, 2)  # mean for each sample
+        else: axis = None
+
+
+        if scale_by_sample:
+            self.stats = None
+            if scale_type == 'normalize':
+                train_min = np.nanmin(train, axis=axis, keepdims=True)
+                train_max = np.nanmax(train, axis=axis, keepdims=True)
+                self.train_ds.x.items = (((train - train_min)) / (train_max - train_min)) *\
+                (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                valid_min = np.nanmin(valid, axis=axis, keepdims=True)
+                valid_max = np.nanmax(valid, axis=axis, keepdims=True)
+                self.valid_ds.x.items = (((valid - valid_min)) / (valid_max - valid_min)) *\
+                (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                if self.test_ds is not None:
+                    test_min = np.nanmin(test, axis=axis, keepdims=True)
+                    test_max = np.nanmax(test, axis=axis, keepdims=True)
+                    self.test_ds.x.items = (((test - test_min)) / (test_max - test_min)) *\
+                    (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                return self
+
+            elif scale_type == 'standardize':
+                train_mean = np.nanmean(train, axis=axis, keepdims=True)
+                train_std = np.nanstd(train, axis=axis, keepdims=True) + 1e-8
+                self.train_ds.x.items = (train - train_mean) / train_std
+                valid_mean = np.nanmean(valid, axis=axis, keepdims=True)
+                valid_std = np.nanstd(valid, axis=axis, keepdims=True) + 1e-8
+                self.valid_ds.x.items = (valid - valid_mean) / valid_std
+                if self.test_ds is not None:
+                    test_mean = np.nanmean(test, axis=axis, keepdims=True)
+                    test_std = np.nanstd(test, axis=axis, keepdims=True) + 1e-8
+                    self.test_ds.x.items = (test - test_mean) / test_std
+                return self
+
+            elif scale_type == 'robustscale':
+                train_median = np.nanmedian(train, axis=axis, keepdims=True)
+                train_perc_25 = np.nanpercentile(train, 25, axis=axis, keepdims=True)
+                train_perc_75 = np.nanpercentile(train, 75, axis=axis, keepdims=True)
+                train_scale = train_perc_75 - train_perc_25
+                self.train_ds.x.items = (train - train_median) / train_scale
+
+                valid_median = np.nanmedian(valid, axis=axis, keepdims=True)
+                valid_perc_25 = np.nanpercentile(valid, 25, axis=axis, keepdims=True)
+                valid_perc_75 = np.nanpercentile(valid, 75, axis=axis, keepdims=True)
+                valid_scale = valid_perc_75 - valid_perc_25
+                self.valid_ds.x.items = (valid - valid_median) / valid_scale
+
+                if self.test_ds is not None:
+                    test_median = np.nanmedian(test, axis=axis, keepdims=True)
+                    test_perc_25 = np.nanpercentile(test, 25, axis=axis, keepdims=True)
+                    test_perc_75 = np.nanpercentile(test, 75, axis=axis, keepdims=True)
+                    test_scale = test_perc_75 - test_perc_25
+                    self.test_ds.x.items = (test - test_median) / test_scale
+                return self
 
         else:
-            print('***** Please, select a valid  scaling_type *****')
-            return
+            if scale_type == 'normalize':
+                train_min = np.nanmin(train, axis=axis, keepdims=True)
+                train_max = np.nanmax(train, axis=axis, keepdims=True)
+                self.stats = train_min, train_max
+                self.train_ds.x.items = (((self.train_ds.x.items - train_min)) / (train_max - train_min)) *\
+                (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                self.valid_ds.x.items = (((self.valid_ds.x.items - train_min)) /  (train_max - train_min)) *\
+                (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                if self.test_ds is not None:
+                    self.test_ds.x.items = (((self.test_ds.x.items - train_min)) / (train_max - train_min)) *\
+                    (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+                return self
+            elif scale_type == 'standardize':
+                train_mean = np.nanmean(train, axis=axis, keepdims=True)
+                train_std = np.nanstd(train, axis=axis, keepdims=True) + 1e-8
+                self.stats = train_mean, train_std
+                self.train_ds.x.items = (self.train_ds.x.items - train_mean) / train_std
+                self.valid_ds.x.items = (self.valid_ds.x.items - train_mean) / train_std
+                if self.test_ds is not None:
+                    self.test_ds.x.items = (self.test_ds.x.items - train_mean) / train_std
+                return self
+            elif scale_type == 'robustscale':
+                train_median = np.nanmedian(train, axis=axis, keepdims=True)
+                train_perc_25 = np.nanpercentile(train, 25, axis=axis, keepdims=True)
+                train_perc_75 = np.nanpercentile(train, 75, axis=axis, keepdims=True)
+                train_scale = train_perc_75 - train_perc_25
+                self.stats = train_median, train_scale
+                self.train_ds.x.items = (train - train_median) / train_scale
+                self.valid_ds.x.items = (valid - train_median) / train_scale
+                if self.test_ds is not None:  self.test_ds.x.items = (test - train_median) / train_scale
+                return self
 
-    def scale(self, scale_type='standardize', scale_subtype='per_channel', scale_range=(-1, 1)) -> None:
-        self.type = scale_type
-        self.subtype = scale_subtype
-        self.range = scale_range
-        self.get_stats()
-        if self.type == 'standardize':
-            self.label_list.train.x.items = (self.label_list.train.x.items -
-                                             self.mean) / self.std
-            self.label_list.valid.x.items = (self.label_list.valid.x.items -
-                                             self.mean) / self.std
-            if self.label_list.test is not None:
-                self.label_list.test.x.items = (self.label_list.test.x.items -
-                                                self.mean) / self.std
-            return self
-        elif self.type == 'normalize':
-            self.label_list.train.x.items = (
-                ((self.label_list.train.x.items - self.min)) /
-                (self.max - self.min)) * (self.range[1] - self.range[0]) + self.range[0]
-            self.label_list.valid.x.items = (
-                ((self.label_list.valid.x.items - self.min)) /
-                (self.max - self.min)) * (self.range[1] - self.range[0]) + self.range[0]
-            if self.label_list.test is not None:
-                self.label_list.test.x.items = (
-                    ((self.label_list.test.x.items - self.min)) /
-                    (self.max - self.min)) * (self.range[1] - self.range[0]) + self.range[0]
-            return self
-        else: return print('Select a correct type', self.type)
+    @property
+    def cw(self)->None: return self._get_cw(self.train_dl)
+
+    @property
+    def dbtype(self)->str: return '1D'
+
+    def _get_cw(self, train_dl):
+        target = torch.Tensor(train_dl.dataset.y.items).to(dtype=torch.int64)
+        # Compute samples weight (each sample should get its own weight)
+        class_sample_count = torch.tensor(
+            [(target == t).sum() for t in torch.unique(target, sorted=True)])
+        weights = 1. / class_sample_count.float()
+        return (weights / weights.sum()).to(device)
+
+
+def show_counts(databunch):
+    labels, counts = np.unique(databunch.train_ds.y.items, return_counts=True)
+    plt.bar(labels, counts)
+    plt.title('labels')
+    plt.xticks(labels)
+    plt.show()
+
+DataBunch.show_counts = show_counts
 
 
 
@@ -146,6 +207,8 @@ class TSPreProcessor(PreProcessor):
 
     def process(self, ds: ItemList):
         ds.features, ds.seq_len = self.ds.get(0).data.size(-2), self.ds.get(0).data.size(-1)
+        ds.f = ds.features
+        ds.s = ds.seq_len
 
 
 class TimeSeriesList(ItemList):
@@ -163,8 +226,8 @@ class TimeSeriesList(ItemList):
 
     def get(self, i):
         item = super().get(i)
-        if self.mask is None: return TimeSeriesItem(To2dTensor(item))
-        else: return[TimeSeriesItem(To2dTensor(item[m])) for m in self.mask]
+        if self.mask is None: return TSItem(To2dTensor(item))
+        else: return[TSItem(To2dTensor(item[m])) for m in self.mask]
 
 
     def show_xys(self, xs, ys, figsize=(10, 10), **kwargs):
@@ -209,9 +272,11 @@ class TimeSeriesList(ItemList):
     @classmethod
     def from_df(cls, df, path='.', cols=None, feat=None, processor=None, **kwargs) -> 'ItemList':
         "Create an `ItemList` in `path` from the inputs in the `cols` of `df`."
-        if cols is 0:
+        if cols is None:
             inputs = df
         else:
+            cols = listify(cols)
+            if feat is not None and feat not in cols: cols = cols + listify(feat)
             col_idxs = df_names_to_idx(list(cols), df)
             inputs = df.iloc[:, col_idxs]
         assert inputs.isna().sum().sum(
@@ -224,6 +289,8 @@ class TimeSeriesList(ItemList):
             processor=processor,
             **kwargs)
         return res
+
+class TSList(TimeSeriesList): pass
 
 
 
@@ -242,8 +309,8 @@ class MixedTimeSeriesList(ItemList):
 
     def get(self, i):
         item = super().get(i)
-        if self.mask is None: return TimeSeriesItem(To2dTensor(item))
-        else: return[TimeSeriesItem(To2dTensor(item[m])) for m in self.mask]
+        if self.mask is None: return TSItem(To2dTensor(item))
+        else: return[TSItem(To2dTensor(item[m])) for m in self.mask]
 
 
     def show_xys(self, xs, ys, figsize=(10, 10), **kwargs):
