@@ -221,3 +221,22 @@ Here is the python code for the calculation of  performance metrics
 
 The chart bellow illustrates ROC and PR curves for 4 different estimators applied on the same data![ ROC](/images/ROC-PV1.png)![ PR](/images/ROC-PV2.png)
 The performances of the algorithms appear to be comparable in ROC space, however, in PR space we can see that Estimator 4 has a clear advantage over Estimator 3.
+
+
+#Assessing the Model
+
+The chart bellow outlines the performance evaluation pipeline (except prevalence) in an example![ performance evaluation pipeline](/images/MLPipe.jpg)
+
+# The bias-variance trade-off (Bias-variance dilemma)
+Bias and variance are inherent properties of estimators and we usually have to select learning algorithms and hyperparameters so that both bias and variance are as low as possible. Another way to reduce the variance of a model is to use more training data. However, you should only collect more training data if the true function is too complex to be approximated by an estimator with a lower variance.
+![ bias-variance trade-off](/images/biasvariance.png)
+
+#Analyzing Model Variance and Bias
+
+The two methods used here for analyzing how the model is performing with the data are Learning Curves and a Model Complexity plot.Learning curves give us an opportunity to diagnose bias and variance in supervised learning models. 
+##Learning Curves
+
+A learning curve shows the validation and training score of an estimator for varying numbers of training samples. It is a tool to find out how much we benefit from adding more training data and whether the estimator suffers more from a **variance error** or a **bias error**. If both the validation score and the training score converge to a value that is **too low** with increasing size of the training set, we will not benefit much from more training data. In the following plot you can see an example: naive Bayes roughly converges to a low score.
+We will probably have to **use an estimator** or a **parametrization of the current estimator** that can learn more **complex concepts** (i.e. has a lower bias). If the training score is much greater than the validation score for the maximum number of training samples (**i.e. has a high variance**), adding more training samples will most likely increase generalization. In the following plot you can see that the SVM could benefit from more training examples.
+
+

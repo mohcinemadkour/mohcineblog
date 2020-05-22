@@ -1,4 +1,4 @@
-title: Type 2 Diabetes - Risk Predictions
+title: Risk Predictions of Type 2 Diabetes
 Date: 2019-07-12 13:01
 Category: Machine Learning, July 2019, Risk prediction
 Tags: Machine Learning, July 2019, Risk prediction
